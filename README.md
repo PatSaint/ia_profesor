@@ -57,6 +57,17 @@ This voice assistant is a local application that uses:
 
 ## Installation Guide
 
+### Instalación simple en Windows
+
+Si querés una instalación tipo "doble clic y listo":
+
+1. Descargá o cloná este repo.
+2. Ejecutá `install.bat` (recomendado) o `install.ps1`.
+3. Elegí la carpeta base donde querés instalarlo.
+4. El instalador clona `ia_profesor`, prepara `.venv`, instala dependencias, verifica Ollama, descarga `qwen2.5:1.5b` y crea el acceso directo `Iniciar ia_profesor` en el escritorio.
+
+Después, abrilo siempre desde el acceso directo del escritorio. En cada inicio el launcher intenta actualizar el repo sin tocar tus datos locales (`chat_data/` y `conversation_history.json`).
+
 ### Python Dependencies
 
 Ensure you have Python 3.8+ installed. Install the required packages using:
@@ -145,6 +156,8 @@ If you prefer a browser interface with a microphone button, run:
 ```sh
 web.bat
 ```
+
+En Windows también podés usar `Iniciar ia_profesor.bat`, que además verifica actualizaciones, dependencias y Ollama antes de abrir la app.
 
 Then open `http://127.0.0.1:5000` if the browser does not open automatically.
 
