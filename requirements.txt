@@ -1,0 +1,8 @@
+numpy
+openai-whisper
+requests
+langdetect
+ollama
+llm_axe
+edge-tts
+flask

@@ -1,0 +1,539 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>English Coach</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0f172a;
+      --panel: #111827;
+      --panel-2: #1f2937;
+      --panel-3: #0b1220;
+      --border: #243041;
+      --text: #e5e7eb;
+      --muted: #94a3b8;
+      --accent: #10a37f;
+      --accent-2: #38bdf8;
+      --danger: #ef4444;
+      --user: #1d4ed8;
+      --assistant: #172554;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font-family: Inter, Arial, sans-serif; }
+    button, textarea, input { font: inherit; }
+    button { cursor: pointer; }
+
+    .app { display: grid; grid-template-columns: 300px 1fr; height: 100vh; }
+    .sidebar { background: #0b1020; border-right: 1px solid var(--border); display: flex; flex-direction: column; min-width: 0; }
+    .sidebar-header { padding: 16px; border-bottom: 1px solid var(--border); display: grid; gap: 12px; }
+    .brand { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .brand h1 { margin: 0; font-size: 18px; }
+    .brand p { margin: 4px 0 0; color: var(--muted); font-size: 12px; }
+    .icon-btn, .primary-btn, .ghost-btn {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--panel-2);
+      color: var(--text);
+      transition: .15s ease;
+    }
+    .icon-btn:hover, .primary-btn:hover, .ghost-btn:hover { filter: brightness(1.08); }
+    .primary-btn { background: var(--accent); color: #052e27; font-weight: 700; padding: 12px 14px; border-color: transparent; }
+    .ghost-btn { padding: 10px 12px; }
+    .icon-btn { width: 40px; height: 40px; }
+    .search-input, .field, .textarea {
+      width: 100%; background: #0f172a; color: var(--text); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px;
+    }
+    .sidebar-list { overflow: auto; padding: 10px; display: grid; gap: 8px; }
+    .chat-item {
+      text-align: left; width: 100%; border: 1px solid transparent; background: transparent; color: var(--text);
+      border-radius: 14px; padding: 12px; display: grid; gap: 6px;
+    }
+    .chat-item:hover { background: rgba(31, 41, 55, .75); }
+    .chat-item.active { background: rgba(31, 41, 55, 1); border-color: #334155; }
+    .chat-title { font-weight: 700; font-size: 14px; }
+    .chat-preview, .chat-date, .muted { color: var(--muted); font-size: 12px; }
+
+    .main { display: grid; grid-template-rows: auto 1fr auto; min-width: 0; }
+    .topbar {
+      border-bottom: 1px solid var(--border); background: rgba(11, 18, 32, .9);
+      display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 20px;
+    }
+    .topbar h2 { margin: 0; font-size: 18px; }
+    .topbar p { margin: 4px 0 0; color: var(--muted); font-size: 12px; }
+    .topbar-actions { display: flex; gap: 10px; align-items: center; }
+
+    .conversation-wrap { overflow: auto; padding: 24px 20px 120px; }
+    .conversation { max-width: 900px; margin: 0 auto; display: grid; gap: 18px; }
+    .empty-state, .memory-banner, .settings-panel, .composer-card, .message {
+      border: 1px solid var(--border); border-radius: 18px; background: rgba(17, 24, 39, .92);
+    }
+    .empty-state, .memory-banner, .settings-panel { padding: 18px; }
+    .memory-banner { display: none; }
+    .memory-banner.visible { display: block; }
+    .memory-banner ul { margin: 10px 0 0; padding-left: 18px; color: var(--muted); }
+
+    .message { overflow: hidden; }
+    .message.user { background: linear-gradient(180deg, rgba(29, 78, 216, .22), rgba(17, 24, 39, .9)); }
+    .message.assistant { background: linear-gradient(180deg, rgba(12, 74, 110, .28), rgba(17, 24, 39, .9)); }
+    .message-head { padding: 12px 16px; border-bottom: 1px solid rgba(51, 65, 85, .6); font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: #cbd5e1; }
+    .message-body { padding: 16px; white-space: pre-wrap; line-height: 1.55; }
+    .message-time { color: var(--muted); font-size: 12px; padding: 0 16px 16px; }
+
+    .composer-shell { position: sticky; bottom: 0; padding: 16px 20px 20px; background: linear-gradient(180deg, rgba(15, 23, 42, 0), rgba(15, 23, 42, 0.94) 30%); }
+    .composer-card { max-width: 900px; margin: 0 auto; padding: 16px; background: rgba(11, 18, 32, .96); }
+    .composer-row { display: flex; gap: 12px; align-items: flex-end; }
+    .composer-input {
+      flex: 1; min-height: 110px; resize: vertical; background: var(--panel); color: var(--text);
+      border: 1px solid var(--border); border-radius: 16px; padding: 14px;
+    }
+    .composer-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; align-items: center; }
+    .record-btn, .send-btn, .stop-btn { border-radius: 999px; padding: 12px 18px; border: none; font-weight: 700; }
+    .record-btn { background: #22c55e; color: #052e16; }
+    .record-btn.recording { background: var(--danger); color: white; }
+    .send-btn { background: var(--accent-2); color: #082f49; }
+    .stop-btn { background: #334155; color: white; }
+    .status { margin-left: auto; color: var(--muted); font-size: 13px; }
+    .audio-player { width: 100%; margin-top: 12px; }
+
+    .settings-panel { display: none; max-width: 900px; margin: 0 auto 18px; }
+    .settings-panel.open { display: block; }
+    .settings-grid { display: grid; gap: 14px; grid-template-columns: 1fr 1fr; }
+    .settings-grid .full { grid-column: 1 / -1; }
+    .label { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: #cbd5e1; margin-bottom: 8px; }
+    .textarea { min-height: 110px; resize: vertical; }
+    .hint { margin: 8px 0 0; font-size: 12px; color: var(--muted); }
+
+    @media (max-width: 960px) {
+      .app { grid-template-columns: 1fr; }
+      .sidebar { height: 38vh; border-right: none; border-bottom: 1px solid var(--border); }
+      .settings-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="brand">
+          <div>
+            <h1>English Coach</h1>
+            <p>Local ChatGPT-style practice studio</p>
+          </div>
+          <button id="settingsToggle" class="icon-btn" type="button" title="Open settings">⚙️</button>
+        </div>
+        <button id="newChatButton" class="primary-btn" type="button">+ New chat</button>
+        <input id="chatSearchInput" class="search-input" type="search" placeholder="Search chats..." />
+      </div>
+      <div id="chatList" class="sidebar-list"></div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <h2 id="chatTitle">Loading...</h2>
+          <p id="chatMeta">Preparing your English coach...</p>
+        </div>
+        <div class="topbar-actions">
+          <button id="renameChatButton" class="ghost-btn" type="button">Rename</button>
+        </div>
+      </header>
+
+      <div id="conversationWrap" class="conversation-wrap">
+        <div class="conversation">
+          <section id="settingsPanel" class="settings-panel">
+            <h3 style="margin-top:0;">Coach settings</h3>
+            <div class="settings-grid">
+              <div class="full">
+                <label class="label" for="globalPromptInput">Global prompt / coach behavior</label>
+                <textarea id="globalPromptInput" class="textarea" placeholder="Extra rules for every chat..."></textarea>
+              </div>
+              <div class="full">
+                <label class="label" for="teachingMemoryInput">Long-term teaching memory</label>
+                <textarea id="teachingMemoryInput" class="textarea" placeholder="What should the assistant remember about how to teach you over time?"></textarea>
+                <p class="hint">Example: "Beginner level, explain in Spanish first, keep answers short, always give one corrected sentence to repeat."</p>
+              </div>
+              <div class="full">
+                <label class="label" for="chatPromptInput">This chat instructions</label>
+                <textarea id="chatPromptInput" class="textarea" placeholder="Optional instructions only for this conversation..."></textarea>
+              </div>
+            </div>
+            <div class="composer-actions">
+              <button id="saveSettingsButton" class="primary-btn" type="button">Save settings</button>
+              <span class="muted">Settings are persisted locally.</span>
+            </div>
+          </section>
+
+          <section id="memoryBanner" class="memory-banner">
+            <strong>Relevant memory from other chats</strong>
+            <ul id="memoryList"></ul>
+          </section>
+
+          <section id="messageList"></section>
+        </div>
+      </div>
+
+      <div class="composer-shell">
+        <div class="composer-card">
+          <div class="composer-row">
+            <textarea id="textInput" class="composer-input" placeholder="Write in English or Spanish. Ctrl/Cmd + Enter to send."></textarea>
+          </div>
+          <div class="composer-actions">
+            <button id="recordButton" class="record-btn" type="button">🎤 Start recording</button>
+            <button id="stopAudioButton" class="stop-btn" type="button">🔇 Stop voice</button>
+            <button id="sendTextButton" class="send-btn" type="button">✍️ Send text</button>
+            <span id="status" class="status">Loading…</span>
+          </div>
+          <audio id="player" class="audio-player" controls></audio>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const state = {
+      chats: [],
+      activeChat: null,
+      settings: { global_prompt: '', teaching_memory: '' },
+      lastMemorySnippets: []
+    };
+
+    const chatListEl = document.getElementById('chatList');
+    const chatSearchInput = document.getElementById('chatSearchInput');
+    const chatTitleEl = document.getElementById('chatTitle');
+    const chatMetaEl = document.getElementById('chatMeta');
+    const messageListEl = document.getElementById('messageList');
+    const memoryBannerEl = document.getElementById('memoryBanner');
+    const memoryListEl = document.getElementById('memoryList');
+    const settingsPanelEl = document.getElementById('settingsPanel');
+    const globalPromptInput = document.getElementById('globalPromptInput');
+    const teachingMemoryInput = document.getElementById('teachingMemoryInput');
+    const chatPromptInput = document.getElementById('chatPromptInput');
+    const saveSettingsButton = document.getElementById('saveSettingsButton');
+    const settingsToggle = document.getElementById('settingsToggle');
+    const renameChatButton = document.getElementById('renameChatButton');
+    const newChatButton = document.getElementById('newChatButton');
+    const recordButton = document.getElementById('recordButton');
+    const stopAudioButton = document.getElementById('stopAudioButton');
+    const sendTextButton = document.getElementById('sendTextButton');
+    const textInput = document.getElementById('textInput');
+    const statusEl = document.getElementById('status');
+    const player = document.getElementById('player');
+
+    let mediaRecorder;
+    let stream;
+    let chunks = [];
+    let isRecording = false;
+
+    function setStatus(text) {
+      statusEl.textContent = text;
+    }
+
+    function escapeHtml(text) {
+      return (text || '').replace(/[&<>"']/g, char => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+      }[char]));
+    }
+
+    function formatDate(value) {
+      if (!value) return '';
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return value;
+      return date.toLocaleString();
+    }
+
+    function renderChats() {
+      const term = chatSearchInput.value.trim().toLowerCase();
+      const chats = state.chats.filter(chat => {
+        if (!term) return true;
+        return [chat.title, chat.preview].some(value => (value || '').toLowerCase().includes(term));
+      });
+
+      chatListEl.innerHTML = chats.map(chat => `
+        <button class="chat-item ${state.activeChat && chat.id === state.activeChat.id ? 'active' : ''}" data-chat-id="${chat.id}" type="button">
+          <div class="chat-title">${escapeHtml(chat.title || 'New chat')}</div>
+          <div class="chat-preview">${escapeHtml(chat.preview || 'No messages yet.')}</div>
+          <div class="chat-date">${escapeHtml(formatDate(chat.updated_at))}</div>
+        </button>
+      `).join('') || '<div class="empty-state"><strong>No chats yet.</strong><div class="muted">Create one and start practicing.</div></div>';
+
+      chatListEl.querySelectorAll('[data-chat-id]').forEach(button => {
+        button.addEventListener('click', () => openChat(button.dataset.chatId));
+      });
+    }
+
+    function renderMessages() {
+      if (!state.activeChat) {
+        messageListEl.innerHTML = '<section class="empty-state"><strong>No active chat.</strong></section>';
+        return;
+      }
+
+      const messages = state.activeChat.messages || [];
+      chatTitleEl.textContent = state.activeChat.title || 'New chat';
+      chatMetaEl.textContent = `Updated ${formatDate(state.activeChat.updated_at)} • ${messages.length} messages`;
+      chatPromptInput.value = state.activeChat.custom_prompt || '';
+      globalPromptInput.value = state.settings.global_prompt || '';
+      teachingMemoryInput.value = state.settings.teaching_memory || '';
+
+      if (!messages.length) {
+        messageListEl.innerHTML = `
+          <section class="empty-state">
+            <strong>Start practicing.</strong>
+            <p class="muted">Use text or microphone. This chat will be saved locally and reopen where you left it.</p>
+          </section>
+        `;
+        return;
+      }
+
+      messageListEl.innerHTML = messages.map(message => `
+        <article class="message ${message.role === 'user' ? 'user' : 'assistant'}">
+          <div class="message-head">${message.role === 'user' ? 'You' : 'Coach'}</div>
+          <div class="message-body">${escapeHtml(message.content)}</div>
+          <div class="message-time">${escapeHtml(formatDate(message.created_at))}</div>
+        </article>
+      `).join('');
+
+      document.getElementById('conversationWrap').scrollTop = document.getElementById('conversationWrap').scrollHeight;
+    }
+
+    function renderMemoryBanner() {
+      const items = state.lastMemorySnippets || [];
+      if (!items.length) {
+        memoryBannerEl.classList.remove('visible');
+        memoryListEl.innerHTML = '';
+        return;
+      }
+
+      memoryBannerEl.classList.add('visible');
+      memoryListEl.innerHTML = items.map(item => `
+        <li><strong>${escapeHtml(item.chat_title)}</strong>: ${escapeHtml(item.snippet)}</li>
+      `).join('');
+    }
+
+    function applyPayload(payload) {
+      state.chats = payload.chats || state.chats;
+      state.settings = payload.settings || state.settings;
+      if (payload.active_chat) state.activeChat = payload.active_chat;
+      if (payload.chat) state.activeChat = payload.chat;
+      if (payload.memory_snippets) state.lastMemorySnippets = payload.memory_snippets;
+      renderChats();
+      renderMessages();
+      renderMemoryBanner();
+    }
+
+    async function fetchJson(url, options = {}) {
+      const response = await fetch(url, options);
+      const data = await response.json();
+      if (!response.ok || !data.ok) {
+        throw new Error(data.error || 'Unknown server error');
+      }
+      return data;
+    }
+
+    async function bootstrap() {
+      setStatus('Loading...');
+      const data = await fetchJson('/api/bootstrap');
+      applyPayload(data);
+      setStatus('Ready');
+    }
+
+    async function openChat(chatId) {
+      setStatus('Opening chat...');
+      const data = await fetchJson(`/api/chats/${chatId}`);
+      state.lastMemorySnippets = [];
+      applyPayload(data);
+      setStatus('Ready');
+    }
+
+    async function createChat() {
+      setStatus('Creating chat...');
+      const data = await fetchJson('/api/chats', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({})
+      });
+      state.lastMemorySnippets = [];
+      applyPayload(data);
+      textInput.focus();
+      setStatus('New chat ready');
+    }
+
+    async function renameChat() {
+      if (!state.activeChat) return;
+      const nextTitle = window.prompt('New title for this chat:', state.activeChat.title || 'New chat');
+      if (nextTitle === null) return;
+      const data = await fetchJson(`/api/chats/${state.activeChat.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: nextTitle })
+      });
+      applyPayload(data);
+      setStatus('Chat renamed');
+    }
+
+    async function saveSettings() {
+      if (!state.activeChat) return;
+      setStatus('Saving settings...');
+      const settingsData = await fetchJson('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          global_prompt: globalPromptInput.value,
+          teaching_memory: teachingMemoryInput.value
+        })
+      });
+
+      const chatData = await fetchJson(`/api/chats/${state.activeChat.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ custom_prompt: chatPromptInput.value })
+      });
+
+      applyPayload({ ...chatData, settings: settingsData.settings });
+      setStatus('Settings saved');
+    }
+
+    function getSupportedMimeType() {
+      const candidates = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'];
+      return candidates.find(type => MediaRecorder.isTypeSupported(type)) || '';
+    }
+
+    async function ensureRecorder() {
+      if (!stream) {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      }
+      const mimeType = getSupportedMimeType();
+      mediaRecorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+      mediaRecorder.ondataavailable = event => {
+        if (event.data.size > 0) chunks.push(event.data);
+      };
+      mediaRecorder.onstop = async () => {
+        const mime = mediaRecorder.mimeType || 'audio/webm';
+        const extension = mime.includes('mp4') ? 'm4a' : 'webm';
+        const blob = new Blob(chunks, { type: mime });
+        chunks = [];
+        await sendAudio(blob, extension);
+      };
+    }
+
+    async function sendAudio(blob, extension) {
+      if (!state.activeChat) return;
+      player.pause();
+      player.currentTime = 0;
+      const formData = new FormData();
+      formData.append('audio', blob, `recording.${extension}`);
+      setStatus('Processing audio...');
+
+      try {
+        const response = await fetch(`/api/chats/${state.activeChat.id}/audio`, { method: 'POST', body: formData });
+        const data = await response.json();
+        if (!response.ok || !data.ok) {
+          throw new Error(data.error || 'Unknown server error');
+        }
+
+        applyPayload(data);
+        if (data.audio_base64) {
+          player.src = `data:audio/mpeg;base64,${data.audio_base64}`;
+          await player.play().catch(() => {});
+        } else {
+          player.removeAttribute('src');
+          player.load();
+        }
+        setStatus('Ready');
+      } catch (error) {
+        setStatus(`Error: ${error.message}`);
+      }
+    }
+
+    async function sendText() {
+      const text = textInput.value.trim();
+      if (!text || !state.activeChat) {
+        setStatus('Write something first');
+        return;
+      }
+
+      player.pause();
+      player.currentTime = 0;
+      setStatus('Thinking...');
+      textInput.value = '';
+
+      try {
+        const data = await fetchJson(`/api/chats/${state.activeChat.id}/text`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text })
+        });
+        applyPayload(data);
+        if (data.audio_base64) {
+          player.src = `data:audio/mpeg;base64,${data.audio_base64}`;
+          await player.play().catch(() => {});
+        } else {
+          player.removeAttribute('src');
+          player.load();
+        }
+        setStatus('Ready');
+      } catch (error) {
+        textInput.value = text;
+        setStatus(`Error: ${error.message}`);
+      }
+    }
+
+    async function toggleRecording() {
+      if (!isRecording) {
+        await ensureRecorder();
+        player.pause();
+        setStatus('Recording...');
+        recordButton.textContent = '⏹ Stop recording';
+        recordButton.classList.add('recording');
+        mediaRecorder.start();
+        isRecording = true;
+        return;
+      }
+
+      setStatus('Finishing recording...');
+      recordButton.textContent = '🎤 Start recording';
+      recordButton.classList.remove('recording');
+      mediaRecorder.stop();
+      isRecording = false;
+    }
+
+    newChatButton.addEventListener('click', createChat);
+    renameChatButton.addEventListener('click', renameChat);
+    saveSettingsButton.addEventListener('click', saveSettings);
+    settingsToggle.addEventListener('click', () => settingsPanelEl.classList.toggle('open'));
+    chatSearchInput.addEventListener('input', renderChats);
+
+    recordButton.addEventListener('click', async () => {
+      try {
+        await toggleRecording();
+      } catch (error) {
+        setStatus(`Microphone error: ${error.message}`);
+      }
+    });
+
+    stopAudioButton.addEventListener('click', () => {
+      player.pause();
+      player.currentTime = 0;
+      setStatus('Audio stopped');
+    });
+
+    sendTextButton.addEventListener('click', sendText);
+    textInput.addEventListener('keydown', async event => {
+      if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+        event.preventDefault();
+        await sendText();
+      }
+    });
+
+    bootstrap().catch(error => {
+      setStatus(`Load error: ${error.message}`);
+    });
+  </script>
+</body>
+</html>

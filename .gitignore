@@ -1,0 +1,5 @@
+.venv/
+__pycache__/
+chat_data/
+conversation_history.json
+*.pyc
