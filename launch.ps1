@@ -229,10 +229,32 @@ function Ensure-Venv {
     return $venvPython
 }
 
+function Get-FileSha256([string]$Path) {
+    if (Get-Command "Get-FileHash" -ErrorAction SilentlyContinue) {
+        return (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash
+    }
+
+    $sha256 = [System.Security.Cryptography.SHA256]::Create()
+    try {
+        $stream = [System.IO.File]::OpenRead($Path)
+        try {
+            $hashBytes = $sha256.ComputeHash($stream)
+        }
+        finally {
+            $stream.Dispose()
+        }
+
+        return ([System.BitConverter]::ToString($hashBytes)).Replace("-", "")
+    }
+    finally {
+        $sha256.Dispose()
+    }
+}
+
 function Ensure-Dependencies([string]$PythonExe) {
     $requirementsPath = Join-Path $ProjectRoot "requirements.txt"
     $stampPath = Join-Path $ProjectRoot ".venv\.requirements.sha256"
-    $currentHash = (Get-FileHash -LiteralPath $requirementsPath -Algorithm SHA256).Hash
+    $currentHash = Get-FileSha256 -Path $requirementsPath
     $savedHash = if (Test-Path -LiteralPath $stampPath) { (Get-Content -LiteralPath $stampPath -Raw).Trim() } else { "" }
 
     if ($currentHash -eq $savedHash) {
