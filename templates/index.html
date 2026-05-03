@@ -23,9 +23,9 @@
 
     * { box-sizing: border-box; }
     html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); color: var(--text); font-family: Inter, Arial, sans-serif; }
-    button, textarea, input { font: inherit; }
+    button, textarea, input, select { font: inherit; }
     button { cursor: pointer; }
-    button:disabled, textarea:disabled, input:disabled {
+    button:disabled, textarea:disabled, input:disabled, select:disabled {
       opacity: .6;
       cursor: not-allowed;
     }
@@ -47,7 +47,7 @@
     .primary-btn { background: var(--accent); color: #052e27; font-weight: 700; padding: 12px 14px; border-color: transparent; }
     .ghost-btn { padding: 10px 12px; }
     .icon-btn { width: 40px; height: 40px; }
-    .search-input, .field, .textarea {
+    .search-input, .field, .textarea, .select {
       width: 100%; background: #0f172a; color: var(--text); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px;
     }
     .sidebar-list { overflow: auto; padding: 10px; display: grid; gap: 8px; flex: 1 1 auto; min-height: 0; }
@@ -70,13 +70,38 @@
     .topbar h2 { margin: 0; font-size: 18px; }
     .topbar p { margin: 4px 0 0; color: var(--muted); font-size: 12px; }
     .topbar-actions { display: flex; gap: 10px; align-items: center; }
+    .provider-badge {
+      border: 1px solid rgba(56, 189, 248, .35);
+      background: rgba(56, 189, 248, .12);
+      color: #bae6fd;
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+    .quick-switch {
+      display: grid;
+      gap: 8px;
+      min-width: 320px;
+    }
+    .quick-switch-label {
+      color: var(--muted);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+    .quick-switch-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
 
     .conversation-wrap { overflow: auto; min-height: 0; padding: 24px 20px 120px; }
     .conversation { max-width: 900px; margin: 0 auto; display: grid; gap: 18px; }
-    .empty-state, .memory-banner, .settings-panel, .composer-card, .message {
+    .empty-state, .memory-banner, .settings-panel, .composer-card, .message, .provider-panel, .provider-status {
       border: 1px solid var(--border); border-radius: 18px; background: rgba(17, 24, 39, .92);
     }
-    .empty-state, .memory-banner, .settings-panel { padding: 18px; }
+    .empty-state, .memory-banner, .settings-panel, .provider-panel, .provider-status { padding: 18px; }
     .memory-banner { display: none; }
     .memory-banner.visible { display: block; }
     .memory-banner ul { margin: 10px 0 0; padding-left: 18px; color: var(--muted); }
@@ -160,6 +185,22 @@
     .settings-panel.open { display: block; }
     .settings-grid { display: grid; gap: 14px; grid-template-columns: 1fr 1fr; }
     .settings-grid .full { grid-column: 1 / -1; }
+    .provider-panel { margin-bottom: 18px; }
+    .provider-grid { display: grid; gap: 14px; grid-template-columns: 1fr 1fr; }
+    .provider-grid .full { grid-column: 1 / -1; }
+    .provider-only { display: none; }
+    .provider-only.visible { display: block; }
+    .hidden { display: none !important; }
+    .provider-status { margin-top: 14px; background: rgba(11, 18, 32, .96); }
+    .provider-notice {
+      margin-top: 14px;
+      padding: 12px 14px;
+      border: 1px dashed rgba(239, 68, 68, .35);
+      border-radius: 14px;
+      background: rgba(127, 29, 29, .15);
+      color: #fecaca;
+      font-size: 13px;
+    }
     .label { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: #cbd5e1; margin-bottom: 8px; }
     .textarea { min-height: 110px; resize: vertical; }
     .hint { margin: 8px 0 0; font-size: 12px; color: var(--muted); }
@@ -195,6 +236,13 @@
           <p id="chatMeta">Preparing your English coach...</p>
         </div>
         <div class="topbar-actions">
+          <div class="quick-switch">
+            <div class="quick-switch-label">IA activa</div>
+            <div class="quick-switch-row">
+              <select id="quickProviderSelect" class="select"></select>
+              <select id="quickModelSelect" class="select"></select>
+            </div>
+          </div>
           <button id="renameChatButton" class="ghost-btn" type="button">Rename</button>
         </div>
       </header>
@@ -202,6 +250,50 @@
       <div id="conversationWrap" class="conversation-wrap">
         <div class="conversation">
           <section id="settingsPanel" class="settings-panel">
+            <section class="provider-panel">
+              <h3 style="margin-top:0;">Seleccionar IA</h3>
+              <div class="provider-grid">
+                <div>
+                  <label class="label" for="providerSelect">Proveedor</label>
+                  <select id="providerSelect" class="select"></select>
+                </div>
+                <div>
+                  <label class="label" for="providerModelSelect">Modelo</label>
+                  <select id="providerModelSelect" class="select"></select>
+                </div>
+                <div id="ollamaFields" class="provider-only full" data-provider-fields="ollama">
+                  <label class="label" for="ollamaBaseUrlInput">Ollama base URL</label>
+                  <input id="ollamaBaseUrlInput" class="field" type="text" placeholder="http://127.0.0.1:11434" />
+                </div>
+                <div id="openaiFields" class="provider-only full" data-provider-fields="openai_api">
+                  <label class="label" for="openaiApiKeyInput">OpenAI API key</label>
+                  <input id="openaiApiKeyInput" class="field" type="password" placeholder="sk-..." autocomplete="off" />
+                </div>
+                <div id="geminiFields" class="provider-only full" data-provider-fields="gemini_api">
+                  <label class="label" for="geminiApiKeyInput">Gemini API key</label>
+                  <input id="geminiApiKeyInput" class="field" type="password" placeholder="AIza..." autocomplete="off" />
+                </div>
+                <div id="openaiWebFields" class="provider-only full" data-provider-fields="openai_web">
+                  <div class="provider-notice">
+                    Portado desde OpenCode: login OAuth PKCE contra auth.openai.com, refresh local del token y requests Codex-compatible a ChatGPT.
+                    Requiere una cuenta ChatGPT compatible con Codex/Plus/Pro según disponibilidad de OpenAI.
+                  </div>
+                  <p id="openaiWebAuthMeta" class="hint">Estado de login: verificando…</p>
+                </div>
+              </div>
+              <div class="composer-actions">
+                <button id="connectProviderButton" class="primary-btn" type="button">Guardar / conectar</button>
+                <button id="activateProviderButton" class="ghost-btn" type="button">Usar este proveedor</button>
+                <button id="openaiWebLoginButton" class="primary-btn hidden" type="button">Iniciar sesión con navegador</button>
+                <button id="openaiWebDisconnectButton" class="ghost-btn hidden" type="button">Cerrar sesión OpenAI</button>
+                <span class="muted">La configuración se guarda localmente en esta app.</span>
+              </div>
+              <div id="providerStatusCard" class="provider-status">
+                <strong id="providerStatusTitle">Estado del proveedor</strong>
+                <p id="providerStatusText" class="hint" style="margin-bottom:0;">Cargando configuración...</p>
+              </div>
+            </section>
+
             <h3 style="margin-top:0;">Coach settings</h3>
             <div class="settings-grid">
               <div class="full">
@@ -260,6 +352,7 @@
       chats: [],
       activeChat: null,
       settings: { global_prompt: '', teaching_memory: '' },
+      providers: { active_provider: 'ollama', active_model: '', providers: [] },
       lastMemorySnippets: []
     };
 
@@ -271,6 +364,20 @@
     const memoryBannerEl = document.getElementById('memoryBanner');
     const memoryListEl = document.getElementById('memoryList');
     const settingsPanelEl = document.getElementById('settingsPanel');
+    const quickProviderSelect = document.getElementById('quickProviderSelect');
+    const quickModelSelect = document.getElementById('quickModelSelect');
+    const providerSelect = document.getElementById('providerSelect');
+    const providerModelSelect = document.getElementById('providerModelSelect');
+    const ollamaBaseUrlInput = document.getElementById('ollamaBaseUrlInput');
+    const openaiApiKeyInput = document.getElementById('openaiApiKeyInput');
+    const geminiApiKeyInput = document.getElementById('geminiApiKeyInput');
+    const openaiWebAuthMeta = document.getElementById('openaiWebAuthMeta');
+    const connectProviderButton = document.getElementById('connectProviderButton');
+    const activateProviderButton = document.getElementById('activateProviderButton');
+    const openaiWebLoginButton = document.getElementById('openaiWebLoginButton');
+    const openaiWebDisconnectButton = document.getElementById('openaiWebDisconnectButton');
+    const providerStatusTitle = document.getElementById('providerStatusTitle');
+    const providerStatusText = document.getElementById('providerStatusText');
     const globalPromptInput = document.getElementById('globalPromptInput');
     const teachingMemoryInput = document.getElementById('teachingMemoryInput');
     const chatPromptInput = document.getElementById('chatPromptInput');
@@ -294,6 +401,7 @@
     let isProcessing = false;
     let processingTimer = null;
     let processingStartedAt = 0;
+    let openAIWebLoginPoll = null;
 
     function setStatus(text) {
       statusEl.textContent = text;
@@ -307,8 +415,19 @@
       newChatButton.disabled = locked;
       renameChatButton.disabled = locked || !state.activeChat;
       saveSettingsButton.disabled = locked;
+      connectProviderButton.disabled = locked;
+      activateProviderButton.disabled = locked;
       settingsToggle.disabled = locked;
       chatSearchInput.disabled = locked;
+      providerSelect.disabled = locked;
+      providerModelSelect.disabled = locked;
+      quickProviderSelect.disabled = locked;
+      quickModelSelect.disabled = locked;
+      ollamaBaseUrlInput.disabled = locked;
+      openaiApiKeyInput.disabled = locked;
+      geminiApiKeyInput.disabled = locked;
+      openaiWebLoginButton.disabled = locked;
+      openaiWebDisconnectButton.disabled = locked;
       globalPromptInput.disabled = locked;
       teachingMemoryInput.disabled = locked;
       chatPromptInput.disabled = locked;
@@ -354,6 +473,100 @@
       const date = new Date(value);
       if (Number.isNaN(date.getTime())) return value;
       return date.toLocaleString();
+    }
+
+    function getProviderMap() {
+      return Object.fromEntries((state.providers.providers || []).map(provider => [provider.id, provider]));
+    }
+
+    function getQuickSwitchProviders() {
+      return (state.providers.providers || []).filter(provider => provider.id === 'ollama' || provider.enabled);
+    }
+
+    function getSelectedProvider() {
+      const map = getProviderMap();
+      return map[providerSelect.value] || state.providers.providers?.[0] || null;
+    }
+
+    function renderQuickSelector() {
+      const providers = getQuickSwitchProviders();
+      const activeProviderId = state.providers.active_provider || providers[0]?.id || 'ollama';
+
+      quickProviderSelect.innerHTML = providers.map(provider => `
+        <option value="${provider.id}">${escapeHtml(provider.label)}</option>
+      `).join('') || '<option value="ollama">Ollama</option>';
+
+      quickProviderSelect.value = providers.some(provider => provider.id === activeProviderId)
+        ? activeProviderId
+        : (providers[0]?.id || 'ollama');
+
+      const activeProvider = providers.find(provider => provider.id === quickProviderSelect.value) || providers[0] || null;
+      const models = activeProvider?.available_models?.length ? activeProvider.available_models : [activeProvider?.selected_model || ''];
+      quickModelSelect.innerHTML = models.filter(Boolean).map(model => `
+        <option value="${escapeHtml(model)}">${escapeHtml(model)}</option>
+      `).join('') || '<option value="">Sin modelos</option>';
+
+      const activeModel = state.providers.active_provider === quickProviderSelect.value
+        ? state.providers.active_model
+        : activeProvider?.selected_model;
+      if (activeModel) {
+        quickModelSelect.value = activeModel;
+      }
+    }
+
+    function renderProviderPanel() {
+      const providers = state.providers.providers || [];
+      const currentValue = providerSelect.value || state.providers.active_provider || 'ollama';
+      providerSelect.innerHTML = providers.map(provider => `
+        <option value="${provider.id}">${escapeHtml(provider.label)}</option>
+      `).join('');
+      providerSelect.value = providers.some(provider => provider.id === currentValue)
+        ? currentValue
+        : (providers[0]?.id || 'ollama');
+
+      document.querySelectorAll('[data-provider-fields]').forEach(section => {
+        section.classList.toggle('visible', section.dataset.providerFields === providerSelect.value);
+      });
+
+      const provider = getSelectedProvider();
+      const models = provider?.available_models?.length ? provider.available_models : [provider?.selected_model || ''];
+      providerModelSelect.innerHTML = models.filter(Boolean).map(model => `
+        <option value="${escapeHtml(model)}">${escapeHtml(model)}</option>
+      `).join('') || '<option value="">Sin modelos detectados todavía</option>';
+      if (provider?.selected_model) {
+        providerModelSelect.value = provider.selected_model;
+      }
+
+      ollamaBaseUrlInput.value = providerSelect.value === 'ollama' ? (provider?.base_url || '') : ollamaBaseUrlInput.value;
+      openaiApiKeyInput.placeholder = provider?.api_key_configured
+        ? `Guardada: ${provider.api_key_masked}`
+        : 'sk-...';
+      geminiApiKeyInput.placeholder = provider?.api_key_configured
+        ? `Guardada: ${provider.api_key_masked}`
+        : 'AIza...';
+      openaiWebAuthMeta.textContent = provider?.id === 'openai_web'
+        ? (provider.oauth_connected
+            ? `Login activo: ${provider.oauth_email || provider.oauth_account_id || 'cuenta conectada'}`
+            : 'Login activo: no conectado todavía.')
+        : 'Estado de login: elegí OpenAI Web/Login para ver los detalles.';
+
+      providerStatusTitle.textContent = provider
+        ? `Estado: ${provider.label}`
+        : 'Estado del proveedor';
+
+      const statusLines = [];
+      if (provider?.connection_status) statusLines.push(provider.connection_status);
+      if (provider?.notes) statusLines.push(provider.notes);
+      if (provider?.last_error) statusLines.push(`Último error: ${provider.last_error}`);
+      providerStatusText.textContent = statusLines.join(' ') || 'Sin información del proveedor.';
+
+      activateProviderButton.disabled = isProcessing || !provider || provider.supports_activation === false;
+      const isOpenAIWeb = providerSelect.value === 'openai_web';
+      connectProviderButton.classList.toggle('hidden', isOpenAIWeb);
+      openaiWebLoginButton.classList.toggle('hidden', !isOpenAIWeb);
+      openaiWebDisconnectButton.classList.toggle('hidden', !isOpenAIWeb);
+      openaiWebDisconnectButton.disabled = isProcessing || !provider?.oauth_connected;
+      openaiWebLoginButton.textContent = provider?.oauth_connected ? 'Renovar / reingresar en navegador' : 'Iniciar sesión con navegador';
     }
 
     function scrollConversationToBottom() {
@@ -443,12 +656,15 @@
     function applyPayload(payload) {
       state.chats = payload.chats || state.chats;
       state.settings = payload.settings || state.settings;
+      state.providers = payload.providers || state.providers;
       if (payload.active_chat) state.activeChat = payload.active_chat;
       if (payload.chat) state.activeChat = payload.chat;
       if (payload.memory_snippets) state.lastMemorySnippets = payload.memory_snippets;
       renderChats();
       renderMessages();
       renderMemoryBanner();
+      renderQuickSelector();
+      renderProviderPanel();
     }
 
     async function fetchJson(url, options = {}) {
@@ -521,6 +737,181 @@
 
       applyPayload({ ...chatData, settings: settingsData.settings });
       setStatus('Settings saved');
+    }
+
+    async function connectProvider() {
+      const provider = getSelectedProvider();
+      if (!provider) return;
+
+      setStatus('Guardando proveedor...');
+      startProcessing('Conectando IA');
+
+      try {
+        const body = {
+          provider: provider.id,
+          selected_model: providerModelSelect.value,
+          make_active: false
+        };
+
+        if (provider.id === 'ollama') body.base_url = ollamaBaseUrlInput.value;
+        if (provider.id === 'openai_api' && openaiApiKeyInput.value.trim()) body.api_key = openaiApiKeyInput.value.trim();
+        if (provider.id === 'gemini_api' && geminiApiKeyInput.value.trim()) body.api_key = geminiApiKeyInput.value.trim();
+
+        const data = await fetchJson('/api/providers/connect', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+
+        openaiApiKeyInput.value = '';
+        geminiApiKeyInput.value = '';
+        applyPayload(data);
+        setStatus('Proveedor guardado');
+      } catch (error) {
+        setStatus(`Error: ${error.message}`);
+      } finally {
+        stopProcessing();
+      }
+    }
+
+    async function activateProvider() {
+      const provider = getSelectedProvider();
+      if (!provider) return;
+
+      setStatus('Activando proveedor...');
+      startProcessing('Activando IA');
+
+      try {
+        const data = await fetchJson('/api/providers/activate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            provider: provider.id,
+            model: providerModelSelect.value
+          })
+        });
+        applyPayload(data);
+        setStatus('Proveedor activo actualizado');
+      } catch (error) {
+        setStatus(`Error: ${error.message}`);
+      } finally {
+        stopProcessing();
+      }
+    }
+
+    async function quickActivateProvider(providerId, model) {
+      if (!providerId) return;
+      setStatus('Activando proveedor...');
+      startProcessing('Cambiando IA');
+
+      try {
+        const data = await fetchJson('/api/providers/activate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ provider: providerId, model })
+        });
+        applyPayload(data);
+        setStatus('IA activa actualizada');
+      } catch (error) {
+        setStatus(`Error: ${error.message}`);
+      } finally {
+        stopProcessing();
+      }
+    }
+
+    async function startOpenAIWebLogin() {
+      setStatus('Abriendo login de OpenAI...');
+      startProcessing('Login OpenAI');
+
+      try {
+        const data = await fetchJson('/api/providers/openai-web/start', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ provider: 'openai_web' })
+        });
+        applyPayload(data);
+
+        const popup = window.open(data.authorize_url, 'openai-web-auth', 'popup=yes,width=720,height=820');
+        if (!popup) {
+          startOpenAIWebPolling();
+          window.location.href = data.authorize_url;
+          return;
+        }
+        popup.focus();
+        setStatus('Completá el login en la ventana del navegador');
+        startOpenAIWebPolling(popup);
+      } catch (error) {
+        setStatus(`Error: ${error.message}`);
+        stopProcessing();
+      }
+    }
+
+    function stopOpenAIWebPolling() {
+      if (openAIWebLoginPoll) {
+        clearInterval(openAIWebLoginPoll);
+        openAIWebLoginPoll = null;
+      }
+    }
+
+    function startOpenAIWebPolling(popup = null) {
+      stopOpenAIWebPolling();
+      const startedAt = Date.now();
+
+      openAIWebLoginPoll = setInterval(async () => {
+        try {
+          const data = await fetchJson('/api/providers');
+          const openaiWeb = (data.providers?.providers || []).find(provider => provider.id === 'openai_web');
+          if (openaiWeb?.oauth_connected) {
+            stopOpenAIWebPolling();
+            stopProcessing();
+            applyPayload({ providers: data.providers });
+            setStatus('OpenAI web conectado');
+            try {
+              popup?.close();
+            } catch (_error) {}
+            return;
+          }
+
+          if (popup && popup.closed) {
+            stopOpenAIWebPolling();
+            stopProcessing();
+            applyPayload({ providers: data.providers });
+            setStatus('La ventana de login se cerró antes de completar la conexión');
+            return;
+          }
+
+          if (Date.now() - startedAt > 5 * 60 * 1000) {
+            stopOpenAIWebPolling();
+            stopProcessing();
+            setStatus('Timeout esperando el login de OpenAI');
+          }
+        } catch (_error) {
+          if (popup && popup.closed) {
+            stopOpenAIWebPolling();
+            stopProcessing();
+            setStatus('La ventana de login se cerró');
+          }
+        }
+      }, 2000);
+    }
+
+    async function disconnectOpenAIWebLogin() {
+      setStatus('Cerrando sesión de OpenAI...');
+      startProcessing('Cerrando sesión');
+
+      try {
+        const data = await fetchJson('/api/providers/openai-web/disconnect', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ provider: 'openai_web' })
+        });
+        applyPayload(data);
+        setStatus('Sesión OpenAI eliminada localmente');
+      } catch (error) {
+        setStatus(`Error: ${error.message}`);
+      } finally {
+        stopProcessing();
+      }
     }
 
     function getSupportedMimeType() {
@@ -638,7 +1029,31 @@
     newChatButton.addEventListener('click', createChat);
     renameChatButton.addEventListener('click', renameChat);
     saveSettingsButton.addEventListener('click', saveSettings);
-    settingsToggle.addEventListener('click', () => settingsPanelEl.classList.toggle('open'));
+    providerSelect.addEventListener('change', renderProviderPanel);
+    quickProviderSelect.addEventListener('change', async () => {
+      const provider = getProviderMap()[quickProviderSelect.value];
+      const nextModel = provider?.selected_model || provider?.available_models?.[0] || quickModelSelect.value;
+      await quickActivateProvider(quickProviderSelect.value, nextModel);
+    });
+    quickModelSelect.addEventListener('change', async () => {
+      await quickActivateProvider(quickProviderSelect.value, quickModelSelect.value);
+    });
+    providerModelSelect.addEventListener('change', () => {
+      const provider = getSelectedProvider();
+      if (provider) provider.selected_model = providerModelSelect.value;
+      renderProviderPanel();
+    });
+    connectProviderButton.addEventListener('click', connectProvider);
+    activateProviderButton.addEventListener('click', activateProvider);
+    openaiWebLoginButton.addEventListener('click', startOpenAIWebLogin);
+    openaiWebDisconnectButton.addEventListener('click', disconnectOpenAIWebLogin);
+    settingsToggle.addEventListener('click', () => {
+      const isOpening = !settingsPanelEl.classList.contains('open');
+      settingsPanelEl.classList.toggle('open');
+      if (isOpening) {
+        settingsPanelEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
     chatSearchInput.addEventListener('input', renderChats);
 
     recordButton.addEventListener('click', async () => {

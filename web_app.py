@@ -1,5 +1,6 @@
 import asyncio
 import base64
+import html
 import os
 import subprocess
 import sys
@@ -15,6 +16,8 @@ from langdetect import detect
 from config import DEFAULT_RESPONSE_LANGUAGE, ENGLISH_VOICE, FFPLAY_PATH, SPANISH_VOICE, WHISPER_MODEL
 from conversation_manager import ConversationManager
 from llm_interface import LLMInterface
+from openai_web_auth import OpenAIWebAuthError
+from provider_manager import ProviderError, ProviderManager
 
 warnings.filterwarnings("ignore", message="You are using `torch.load` with `weights_only=False`")
 warnings.filterwarnings("ignore", message="Performing inference on CPU when CUDA is available")
@@ -35,7 +38,8 @@ class WebVoiceCoach:
         ensure_ffmpeg_available()
         self.whisper_model = whisper.load_model(WHISPER_MODEL, device="cpu")
         self.conversation_manager = ConversationManager()
-        self.llm_interface = LLMInterface(self.conversation_manager)
+        self.provider_manager = ProviderManager()
+        self.llm_interface = LLMInterface(self.conversation_manager, self.provider_manager)
         self.lock = threading.Lock()
         print("[WEB] Web voice coach ready.")
 
@@ -92,6 +96,7 @@ class WebVoiceCoach:
             "active_chat": active_chat,
             "chats": self.conversation_manager.list_chats(),
             "settings": self.conversation_manager.get_settings(),
+            "providers": self.provider_manager.get_ui_state(),
         }
 
     async def process_audio(self, audio_file: str, chat_id: str) -> dict:
@@ -120,7 +125,11 @@ class WebVoiceCoach:
             except Exception:
                 response_language = DEFAULT_RESPONSE_LANGUAGE
 
-            audio_base64 = self.synthesize_speech_base64(response, response_language)
+            try:
+                audio_base64 = self.synthesize_speech_base64(response, response_language)
+            except Exception as tts_error:
+                print(f"[WEB][TTS] Audio generation failed: {tts_error}")
+                audio_base64 = ""
 
             return {
                 "ok": True,
@@ -149,7 +158,11 @@ class WebVoiceCoach:
             except Exception:
                 response_language = DEFAULT_RESPONSE_LANGUAGE
 
-            audio_base64 = self.synthesize_speech_base64(response, response_language)
+            try:
+                audio_base64 = self.synthesize_speech_base64(response, response_language)
+            except Exception as tts_error:
+                print(f"[WEB][TTS] Audio generation failed: {tts_error}")
+                audio_base64 = ""
 
             return {
                 "ok": True,
@@ -167,6 +180,41 @@ coach = WebVoiceCoach()
 
 def json_error(message: str, status_code: int = 400):
     return jsonify({"ok": False, "error": message}), status_code
+
+
+def _callback_html(ok: bool, message: str) -> str:
+    title = "OpenAI login complete" if ok else "OpenAI login failed"
+    color = "#10a37f" if ok else "#ef4444"
+    payload = "true" if ok else "false"
+    safe_display = html.escape(message)
+    safe_message = message.replace("\\", "\\\\").replace("`", "\\`").replace("${", "\\${")
+    return f"""<!doctype html>
+<html lang=\"en\">
+  <head>
+    <meta charset=\"utf-8\" />
+    <title>{title}</title>
+    <style>
+      body {{ font-family: Inter, Arial, sans-serif; background: #0f172a; color: #e5e7eb; display:flex; align-items:center; justify-content:center; min-height:100vh; margin:0; }}
+      .card {{ max-width: 520px; padding: 28px; border-radius: 18px; border: 1px solid #243041; background: #111827; text-align:center; }}
+      h1 {{ margin-top:0; color:{color}; }}
+      p {{ line-height:1.5; color:#cbd5e1; }}
+    </style>
+  </head>
+  <body>
+    <div class=\"card\">
+      <h1>{title}</h1>
+      <p>{safe_display}</p>
+    </div>
+    <script>
+      try {{
+        if (window.opener) {{
+          window.opener.postMessage({{ type: 'openai-web-auth', ok: {payload}, message: `{safe_message}` }}, window.location.origin);
+        }}
+      }} catch (_error) {{}}
+      setTimeout(() => window.close(), 1200);
+    </script>
+  </body>
+</html>"""
 
 
 @app.get("/")
@@ -243,6 +291,89 @@ def update_settings():
         teaching_memory=payload.get("teaching_memory"),
     )
     return jsonify({"ok": True, "settings": settings})
+
+
+@app.get("/api/providers")
+def get_providers():
+    return jsonify({"ok": True, "providers": coach.provider_manager.get_ui_state()})
+
+
+@app.post("/api/providers/connect")
+def connect_provider():
+    payload = request.get_json(silent=True) or {}
+    provider_id = (payload.get("provider") or "").strip()
+    if not provider_id:
+        return json_error("Provider is required.")
+
+    try:
+        providers = coach.provider_manager.configure_provider(provider_id, payload)
+        return jsonify({"ok": True, "providers": providers})
+    except ProviderError as error:
+        return json_error(str(error), 400)
+    except Exception as error:
+        print(f"[WEB] Provider connect error: {error}")
+        return json_error(str(error), 500)
+
+
+@app.post("/api/providers/activate")
+def activate_provider():
+    payload = request.get_json(silent=True) or {}
+    provider_id = (payload.get("provider") or "").strip()
+    if not provider_id:
+        return json_error("Provider is required.")
+
+    try:
+        providers = coach.provider_manager.activate_provider(provider_id, payload.get("model"))
+        return jsonify({"ok": True, "providers": providers})
+    except ProviderError as error:
+        return json_error(str(error), 400)
+    except Exception as error:
+        print(f"[WEB] Provider activation error: {error}")
+        return json_error(str(error), 500)
+
+
+@app.post("/api/providers/openai-web/start")
+def start_openai_web_login():
+    try:
+        result = coach.provider_manager.start_openai_web_login()
+        return jsonify({"ok": True, **result, "providers": coach.provider_manager.get_ui_state()})
+    except (ProviderError, OpenAIWebAuthError) as error:
+        return json_error(str(error), 400)
+    except Exception as error:
+        print(f"[WEB] OpenAI browser login start error: {error}")
+        return json_error(str(error), 500)
+
+
+@app.get("/api/providers/openai-web/callback")
+def complete_openai_web_login():
+    error = (request.args.get("error") or "").strip()
+    if error:
+        description = (request.args.get("error_description") or error).strip()
+        return _callback_html(False, description), 200, {"Content-Type": "text/html; charset=utf-8"}
+
+    code = (request.args.get("code") or "").strip()
+    state = (request.args.get("state") or "").strip()
+    if not code or not state:
+        return _callback_html(False, "Missing OAuth code or state."), 400, {"Content-Type": "text/html; charset=utf-8"}
+
+    try:
+        coach.provider_manager.complete_openai_web_login(code, state)
+        return _callback_html(True, "Login completed. You can return to the app."), 200, {"Content-Type": "text/html; charset=utf-8"}
+    except (ProviderError, OpenAIWebAuthError) as auth_error:
+        return _callback_html(False, str(auth_error)), 400, {"Content-Type": "text/html; charset=utf-8"}
+    except Exception as auth_error:
+        print(f"[WEB] OpenAI browser callback error: {auth_error}")
+        return _callback_html(False, str(auth_error)), 500, {"Content-Type": "text/html; charset=utf-8"}
+
+
+@app.post("/api/providers/openai-web/disconnect")
+def disconnect_openai_web_login():
+    try:
+        providers = coach.provider_manager.disconnect_openai_web()
+        return jsonify({"ok": True, "providers": providers})
+    except Exception as error:
+        print(f"[WEB] OpenAI browser disconnect error: {error}")
+        return json_error(str(error), 500)
 
 
 def _process_audio_request(chat_id: str):

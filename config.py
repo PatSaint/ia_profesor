@@ -9,6 +9,8 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 HISTORY_FILE = os.path.join(BASE_DIR, "conversation_history.json")
 CHAT_STORAGE_DIR = os.path.join(BASE_DIR, "chat_data")
 CHAT_INDEX_FILE = os.path.join(CHAT_STORAGE_DIR, "index.json")
+PROVIDER_CONFIG_FILE = os.path.join(CHAT_STORAGE_DIR, "providers.json")
+OPENAI_WEB_AUTH_FILE = os.path.join(CHAT_STORAGE_DIR, "openai_web_auth.json")
 
 # CUSTOMIZE: Speech/voice settings
 WHISPER_MODEL = "tiny"
@@ -22,6 +24,15 @@ FFPLAY_PATH = os.getenv(
 
 # CUSTOMIZE: LLM model settings - web coach uses this Ollama model
 LLM_MODEL = "qwen2.5:1.5b"
+OPENAI_DEFAULT_MODEL = "gpt-4o-mini"
+GEMINI_DEFAULT_MODEL = "gemini-1.5-flash"
+OPENAI_WEB_DEFAULT_MODEL = "gpt-5.4"
+OPENAI_WEB_MODELS = ["gpt-5.5", "gpt-5.4", "gpt-5.4-mini", "gpt-5.3-codex", "gpt-5.2"]
+OPENAI_WEB_CLIENT_ID = "app_EMoamEEZ73f0CkXaXp7hrann"
+OPENAI_WEB_ISSUER = "https://auth.openai.com"
+OPENAI_WEB_CALLBACK_PORT = 1455
+OLLAMA_DEFAULT_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434")
+PROVIDER_REQUEST_TIMEOUT = 45
 
 # CUSTOMIZE: Default location if auto-detection fails
 DEFAULT_CITY = "Your City"

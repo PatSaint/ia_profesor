@@ -32,6 +32,7 @@ This voice assistant is a local application that uses:
 - **Keyboard hotkeys** for toggling recording and exiting the assistant.
 - **Web UI option** with a ChatGPT-like layout, chat sidebar, and microphone button.
 - **Conversation memory** stored locally with multiple persistent chats and long-term teaching notes.
+- **Multi-provider AI selector** with persisted provider/model settings for Ollama, OpenAI API, and Gemini API.
 
 ---
 
@@ -51,7 +52,13 @@ This voice assistant is a local application that uses:
   Stores multiple persistent chats under `chat_data/` so you can continue later.
 
 - **ChatGPT-style Web UI:**\
-  Includes a sidebar of chats, text input, microphone button, browser audio playback, and editable teaching instructions.
+  Includes a sidebar of chats, text input, microphone button, browser audio playback, editable teaching instructions, and a provider/model selection panel.
+
+- **Provider Switching:**\
+  Lets you choose the active AI provider globally for the app. Ollama remains the default fallback if a remote provider fails.
+
+- **OpenAI Web/Login (OpenCode-style):**\
+  Includes a browser OAuth flow adapted from OpenCode so you can sign in with ChatGPT locally, persist tokens under `chat_data/`, refresh them automatically, and use Codex-compatible requests without storing raw browser cookies.
 
 ---
 
@@ -167,7 +174,17 @@ The web UI lets you:
 - start/stop recording with the mouse
 - keep using text input when you don't want to speak
 - edit global coaching instructions, long-term teaching memory, and chat-specific prompts
+- choose the active AI provider and model from the "Seleccionar IA" panel
 - hear the generated voice directly in the browser
+
+### Provider notes
+
+- **Ollama:** fully supported locally and used as the default fallback.
+- **OpenAI API:** supported via API key and live model listing from the OpenAI Platform API.
+- **Gemini API:** supported via API key and live model listing from the Gemini API.
+- **OpenAI Web/Login:** supported through an OpenCode-inspired PKCE browser flow against `auth.openai.com`, with local token refresh and Codex-compatible chat requests.
+
+Provider settings are persisted locally in `chat_data/providers.json`, which stays out of git because `chat_data/` is already ignored.
 
 ---
 

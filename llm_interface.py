@@ -1,20 +1,19 @@
 import asyncio
 import json
+import re
 from typing import Dict, List, Optional, Tuple, Union
 
-import ollama
 import requests
-from llm_axe import OnlineAgent, OllamaChat
 
-from config import CONVERSATION_CONTEXT, LLM_MODEL
+from config import CONVERSATION_CONTEXT
+from provider_manager import ProviderManager
 
 
 class LLMInterface:
-    def __init__(self, conversation_manager):
+    def __init__(self, conversation_manager, provider_manager: ProviderManager):
         self.conversation_manager = conversation_manager
-        self.ollama_model = LLM_MODEL
+        self.provider_manager = provider_manager
         self.base_system_prompt = CONVERSATION_CONTEXT
-        self.llm = OllamaChat(model=self.ollama_model)
 
     async def ask_llm(
         self,
@@ -39,7 +38,7 @@ class LLMInterface:
                 context_snippets=context_snippets,
             )
         else:
-            print("[LLM] Using local Ollama model")
+            print("[LLM] Using active provider")
             response = await self._get_offline_response(
                 query,
                 chat_id=chat_id,
@@ -133,6 +132,7 @@ class LLMInterface:
             method = None
             summary = None
             url = None
+            extra_context = ""
             loop = asyncio.get_event_loop()
             search_url = f"http://localhost:8080/search?q={search_query}&format=json"
 
@@ -175,32 +175,16 @@ class LLMInterface:
                 print(f"[LLM] Error fetching search results: {error}")
 
             if method == "answers":
-                messages = self._build_messages(
-                    query,
-                    chat_id,
-                    context_snippets,
-                    extra_system_context=f"Additional internet data for the next reply: {summary}",
-                )
-                response = await loop.run_in_executor(
-                    None,
-                    lambda: ollama.chat(model=self.ollama_model, messages=messages),
-                )
-                return response["message"]["content"].strip()
+                extra_context = f"Additional internet data for the next reply: {summary}"
 
             if method == "onlineagent" and url:
-                searcher = OnlineAgent(self.llm)
-                context_prompt = self._build_system_prompt(chat_id)
-                if context_snippets:
-                    snippet_lines = [f"- {item['chat_title']}: {item['snippet']}" for item in context_snippets]
-                    context_prompt += "\n\nRelevant memory from other chats:\n" + "\n".join(snippet_lines)
-                online_answer = await loop.run_in_executor(
-                    None,
-                    searcher.search,
-                    f"{context_prompt}\n\nExtract info from this website: {url}\n\nAnswer the user's question: {query}",
-                )
-                return online_answer.replace('Based to the information from the internet,', '').strip()
+                webpage_context = await loop.run_in_executor(None, self._fetch_webpage_context, url)
+                if webpage_context:
+                    extra_context = (
+                        f"Use this webpage extract as supporting context. Source URL: {url}\n\n{webpage_context}"
+                    )
 
-            return await self._get_offline_response(query, chat_id, context_snippets)
+            return await self._get_offline_response(query, chat_id, context_snippets, extra_system_context=extra_context)
         except Exception as error:
             print(f"[LLM] Error getting internet-enhanced response: {error}")
             return "Sorry, I'm having trouble retrieving information from the internet right now."
@@ -210,18 +194,25 @@ class LLMInterface:
         query: str,
         chat_id: Optional[str],
         context_snippets: List[Dict[str, str]],
+        extra_system_context: str = "",
     ) -> str:
         try:
-            messages = self._build_messages(query, chat_id, context_snippets)
+            messages = self._build_messages(query, chat_id, context_snippets, extra_system_context=extra_system_context)
             loop = asyncio.get_event_loop()
-            response = await loop.run_in_executor(
-                None,
-                lambda: ollama.chat(model=self.ollama_model, messages=messages),
-            )
-            return response["message"]["content"]
+            return await loop.run_in_executor(None, lambda: self.provider_manager.chat(messages))
         except Exception as error:
             print(f"[LLM] Error getting offline response: {error}")
             return "I'm having trouble processing your request right now."
+
+    def _fetch_webpage_context(self, url: str) -> str:
+        response = requests.get(url, timeout=12, headers={"User-Agent": "english-coach/1.0"})
+        response.raise_for_status()
+        html = response.text
+        html = re.sub(r"<script.*?</script>", " ", html, flags=re.IGNORECASE | re.DOTALL)
+        html = re.sub(r"<style.*?</style>", " ", html, flags=re.IGNORECASE | re.DOTALL)
+        text = re.sub(r"<[^>]+>", " ", html)
+        text = re.sub(r"\s+", " ", text).strip()
+        return text[:5000]
 
     def update_conversation(
         self,
