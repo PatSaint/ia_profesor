@@ -22,12 +22,16 @@
     }
 
     * { box-sizing: border-box; }
-    html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font-family: Inter, Arial, sans-serif; }
+    html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); color: var(--text); font-family: Inter, Arial, sans-serif; }
     button, textarea, input { font: inherit; }
     button { cursor: pointer; }
+    button:disabled, textarea:disabled, input:disabled {
+      opacity: .6;
+      cursor: not-allowed;
+    }
 
-    .app { display: grid; grid-template-columns: 300px 1fr; height: 100vh; }
-    .sidebar { background: #0b1020; border-right: 1px solid var(--border); display: flex; flex-direction: column; min-width: 0; }
+    .app { display: grid; grid-template-columns: 300px 1fr; height: 100vh; overflow: hidden; }
+    .sidebar { background: #0b1020; border-right: 1px solid var(--border); display: flex; flex-direction: column; min-width: 0; min-height: 0; overflow: hidden; }
     .sidebar-header { padding: 16px; border-bottom: 1px solid var(--border); display: grid; gap: 12px; }
     .brand { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
     .brand h1 { margin: 0; font-size: 18px; }
@@ -46,7 +50,7 @@
     .search-input, .field, .textarea {
       width: 100%; background: #0f172a; color: var(--text); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px;
     }
-    .sidebar-list { overflow: auto; padding: 10px; display: grid; gap: 8px; }
+    .sidebar-list { overflow: auto; padding: 10px; display: grid; gap: 8px; flex: 1 1 auto; min-height: 0; }
     .chat-item {
       text-align: left; width: 100%; border: 1px solid transparent; background: transparent; color: var(--text);
       border-radius: 14px; padding: 12px; display: grid; gap: 6px;
@@ -56,16 +60,18 @@
     .chat-title { font-weight: 700; font-size: 14px; }
     .chat-preview, .chat-date, .muted { color: var(--muted); font-size: 12px; }
 
-    .main { display: grid; grid-template-rows: auto 1fr auto; min-width: 0; }
+    .main { display: grid; grid-template-rows: auto 1fr auto; min-width: 0; min-height: 0; overflow: hidden; }
     .topbar {
       border-bottom: 1px solid var(--border); background: rgba(11, 18, 32, .9);
       display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 20px;
+      position: relative;
+      z-index: 2;
     }
     .topbar h2 { margin: 0; font-size: 18px; }
     .topbar p { margin: 4px 0 0; color: var(--muted); font-size: 12px; }
     .topbar-actions { display: flex; gap: 10px; align-items: center; }
 
-    .conversation-wrap { overflow: auto; padding: 24px 20px 120px; }
+    .conversation-wrap { overflow: auto; min-height: 0; padding: 24px 20px 120px; }
     .conversation { max-width: 900px; margin: 0 auto; display: grid; gap: 18px; }
     .empty-state, .memory-banner, .settings-panel, .composer-card, .message {
       border: 1px solid var(--border); border-radius: 18px; background: rgba(17, 24, 39, .92);
@@ -96,6 +102,58 @@
     .send-btn { background: var(--accent-2); color: #082f49; }
     .stop-btn { background: #334155; color: white; }
     .status { margin-left: auto; color: var(--muted); font-size: 13px; }
+    .processing-pill {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: rgba(16, 163, 127, .14);
+      border: 1px solid rgba(16, 163, 127, .35);
+      color: #d1fae5;
+      font-size: 13px;
+      font-weight: 600;
+      box-shadow: 0 0 0 rgba(16, 163, 127, 0);
+    }
+    .processing-pill.visible {
+      display: inline-flex;
+      animation: glow 1.8s infinite ease-in-out;
+    }
+    .processing-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: #34d399;
+      animation: pulse 1s infinite ease-in-out;
+      flex: 0 0 auto;
+    }
+    .processing-bars {
+      display: inline-flex;
+      align-items: end;
+      gap: 3px;
+      height: 14px;
+    }
+    .processing-bars span {
+      width: 3px;
+      border-radius: 999px;
+      background: #6ee7b7;
+      animation: bars 1s infinite ease-in-out;
+    }
+    .processing-bars span:nth-child(1) { height: 6px; animation-delay: 0s; }
+    .processing-bars span:nth-child(2) { height: 12px; animation-delay: .15s; }
+    .processing-bars span:nth-child(3) { height: 8px; animation-delay: .3s; }
+    @keyframes pulse {
+      0%, 100% { transform: scale(.8); opacity: .55; }
+      50% { transform: scale(1.2); opacity: 1; }
+    }
+    @keyframes bars {
+      0%, 100% { transform: scaleY(.55); opacity: .55; }
+      50% { transform: scaleY(1.15); opacity: 1; }
+    }
+    @keyframes glow {
+      0%, 100% { box-shadow: 0 0 0 rgba(16, 163, 127, 0); }
+      50% { box-shadow: 0 0 18px rgba(16, 163, 127, .18); }
+    }
     .audio-player { width: 100%; margin-top: 12px; }
 
     .settings-panel { display: none; max-width: 900px; margin: 0 auto 18px; }
@@ -119,8 +177,8 @@
       <div class="sidebar-header">
         <div class="brand">
           <div>
-            <h1>English Coach</h1>
-            <p>Local ChatGPT-style practice studio</p>
+            <h1>ia Profesor by PatSaint</h1>
+            <p>Coach de inglés local con memoria</p>
           </div>
           <button id="settingsToggle" class="icon-btn" type="button" title="Open settings">⚙️</button>
         </div>
@@ -184,6 +242,11 @@
             <button id="recordButton" class="record-btn" type="button">🎤 Start recording</button>
             <button id="stopAudioButton" class="stop-btn" type="button">🔇 Stop voice</button>
             <button id="sendTextButton" class="send-btn" type="button">✍️ Send text</button>
+            <div id="processingPill" class="processing-pill" aria-live="polite">
+              <span class="processing-dot"></span>
+              <span class="processing-bars"><span></span><span></span><span></span></span>
+              <span id="processingText">Procesando...</span>
+            </div>
             <span id="status" class="status">Loading…</span>
           </div>
           <audio id="player" class="audio-player" controls></audio>
@@ -221,14 +284,59 @@
     const textInput = document.getElementById('textInput');
     const statusEl = document.getElementById('status');
     const player = document.getElementById('player');
+    const processingPill = document.getElementById('processingPill');
+    const processingText = document.getElementById('processingText');
 
     let mediaRecorder;
     let stream;
     let chunks = [];
     let isRecording = false;
+    let isProcessing = false;
+    let processingTimer = null;
+    let processingStartedAt = 0;
 
     function setStatus(text) {
       statusEl.textContent = text;
+    }
+
+    function setInteractionLocked(locked) {
+      isProcessing = locked;
+      textInput.disabled = locked;
+      sendTextButton.disabled = locked;
+      recordButton.disabled = locked;
+      newChatButton.disabled = locked;
+      renameChatButton.disabled = locked || !state.activeChat;
+      saveSettingsButton.disabled = locked;
+      settingsToggle.disabled = locked;
+      chatSearchInput.disabled = locked;
+      globalPromptInput.disabled = locked;
+      teachingMemoryInput.disabled = locked;
+      chatPromptInput.disabled = locked;
+    }
+
+    function startProcessing(label = 'Procesando') {
+      setInteractionLocked(true);
+      processingStartedAt = Date.now();
+      processingPill.classList.add('visible');
+
+      const tick = () => {
+        const seconds = Math.max(0, Math.floor((Date.now() - processingStartedAt) / 1000));
+        processingText.textContent = `${label}... ${seconds}s`;
+      };
+
+      tick();
+      if (processingTimer) clearInterval(processingTimer);
+      processingTimer = setInterval(tick, 1000);
+    }
+
+    function stopProcessing() {
+      if (processingTimer) {
+        clearInterval(processingTimer);
+        processingTimer = null;
+      }
+      setInteractionLocked(false);
+      processingPill.classList.remove('visible');
+      processingText.textContent = 'Procesando...';
     }
 
     function escapeHtml(text) {
@@ -246,6 +354,21 @@
       const date = new Date(value);
       if (Number.isNaN(date.getTime())) return value;
       return date.toLocaleString();
+    }
+
+    function scrollConversationToBottom() {
+      const wrap = document.getElementById('conversationWrap');
+      if (!wrap) return;
+
+      const scroll = () => {
+        wrap.scrollTop = wrap.scrollHeight;
+      };
+
+      scroll();
+      requestAnimationFrame(() => {
+        scroll();
+        requestAnimationFrame(scroll);
+      });
     }
 
     function renderChats() {
@@ -288,6 +411,7 @@
             <p class="muted">Use text or microphone. This chat will be saved locally and reopen where you left it.</p>
           </section>
         `;
+        scrollConversationToBottom();
         return;
       }
 
@@ -299,7 +423,7 @@
         </article>
       `).join('');
 
-      document.getElementById('conversationWrap').scrollTop = document.getElementById('conversationWrap').scrollHeight;
+      scrollConversationToBottom();
     }
 
     function renderMemoryBanner() {
@@ -429,6 +553,7 @@
       const formData = new FormData();
       formData.append('audio', blob, `recording.${extension}`);
       setStatus('Processing audio...');
+      startProcessing('Procesando audio');
 
       try {
         const response = await fetch(`/api/chats/${state.activeChat.id}/audio`, { method: 'POST', body: formData });
@@ -448,10 +573,13 @@
         setStatus('Ready');
       } catch (error) {
         setStatus(`Error: ${error.message}`);
+      } finally {
+        stopProcessing();
       }
     }
 
     async function sendText() {
+      if (isProcessing) return;
       const text = textInput.value.trim();
       if (!text || !state.activeChat) {
         setStatus('Write something first');
@@ -461,6 +589,7 @@
       player.pause();
       player.currentTime = 0;
       setStatus('Thinking...');
+      startProcessing('Pensando');
       textInput.value = '';
 
       try {
@@ -481,10 +610,13 @@
       } catch (error) {
         textInput.value = text;
         setStatus(`Error: ${error.message}`);
+      } finally {
+        stopProcessing();
       }
     }
 
     async function toggleRecording() {
+      if (isProcessing) return;
       if (!isRecording) {
         await ensureRecorder();
         player.pause();
@@ -525,7 +657,11 @@
 
     sendTextButton.addEventListener('click', sendText);
     textInput.addEventListener('keydown', async event => {
-      if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+      if (isProcessing) {
+        event.preventDefault();
+        return;
+      }
+      if (event.key === 'Enter' && !event.altKey) {
         event.preventDefault();
         await sendText();
       }
