@@ -1,0 +1,31 @@
+INSTALACIÓN RÁPIDA DE IA_PROFESOR
+
+1. Descomprimí este ZIP en cualquier carpeta.
+2. Abrí la carpeta descomprimida.
+3. Hacé doble clic en install.bat.
+4. Si te pregunta dónde instalarlo, podés apretar Enter para usar la carpeta actual.
+5. Esperá a que termine.
+
+CUANDO TERMINE
+
+- En el escritorio se creará un acceso directo llamado:
+  Iniciar ia_profesor
+
+USO NORMAL
+
+- Doble clic en: Iniciar ia_profesor
+
+SI QUERÉS USARLO DESDE TU CELULAR O DESDE OTRA PC DE LA MISMA RED
+
+- Abrí la carpeta donde quedó instalado.
+- Ejecutá: web_server.bat
+- Mirá la dirección que sale en la consola, por ejemplo:
+  http://192.168.1.50:5000
+- Abrí esa dirección en el navegador del otro dispositivo.
+
+NOTAS IMPORTANTES
+
+- Ollama no es obligatorio.
+- Podés usar OpenAI, Gemini o servidores locales/red desde la propia web.
+- Si Windows pide permisos de red o firewall, aceptalos.
+- Si algo falla, mandame captura del error.

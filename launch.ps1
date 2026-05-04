@@ -4,7 +4,9 @@ $ErrorActionPreference = "Stop"
 $ProjectRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $RepoBranch = "main"
 $ModelName = "qwen2.5:1.5b"
-$AppUrl = "http://127.0.0.1:5000"
+$AppHost = if ($env:IA_PROFESOR_HOST) { $env:IA_PROFESOR_HOST } else { "127.0.0.1" }
+$AppPort = if ($env:IA_PROFESOR_PORT) { [int]$env:IA_PROFESOR_PORT } else { 5000 }
+$AppUrl = if ($AppHost -eq "0.0.0.0") { "http://127.0.0.1:$AppPort" } else { "http://$AppHost`:$AppPort" }
 $RuntimePaths = @(
     "chat_data",
     "conversation_history.json"
@@ -287,6 +289,44 @@ function Open-BrowserSoon {
     ) -WindowStyle Hidden | Out-Null
 }
 
+function Ensure-FirewallRule([int]$Port) {
+    try {
+        $ruleName = "ia_profesor_$Port"
+        $existing = Get-NetFirewallRule -DisplayName $ruleName -ErrorAction SilentlyContinue
+        if (-not $existing) {
+            New-NetFirewallRule -DisplayName $ruleName -Direction Inbound -Action Allow -Protocol TCP -LocalPort $Port | Out-Null
+            Write-Ok "Regla de firewall creada para el puerto $Port."
+        }
+        else {
+            Write-Ok "La regla de firewall para el puerto $Port ya existe."
+        }
+    }
+    catch {
+        Write-WarnLine "No pude verificar/crear la regla de firewall para el puerto $Port. Si tu celular no entra, abrí ese puerto manualmente o ejecutá como administrador."
+    }
+}
+
+function Get-LanUrls([int]$Port) {
+    $urls = @()
+    try {
+        $addresses = Get-NetIPAddress -AddressFamily IPv4 -ErrorAction SilentlyContinue |
+            Where-Object {
+                $_.IPAddress -notlike '127.*' -and
+                $_.IPAddress -notlike '169.254*' -and
+                $_.PrefixOrigin -ne 'WellKnown'
+            } |
+            Select-Object -ExpandProperty IPAddress -Unique
+
+        foreach ($ip in $addresses) {
+            $urls += "http://$ip`:$Port"
+        }
+    }
+    catch {
+        # ignore
+    }
+    return $urls
+}
+
 try {
     Set-Location $ProjectRoot
     Write-Host "Iniciando ia_profesor..." -ForegroundColor Green
@@ -303,8 +343,21 @@ try {
         Write-Info "La app fue actualizada antes de abrirse."
     }
 
+    if ($AppHost -eq "0.0.0.0") {
+        Ensure-FirewallRule -Port $AppPort
+        $lanUrls = Get-LanUrls -Port $AppPort
+        if ($lanUrls.Count -gt 0) {
+            Write-Host "Acceso desde otros equipos de tu red:" -ForegroundColor Green
+            foreach ($url in $lanUrls) {
+                Write-Host " - $url" -ForegroundColor White
+            }
+        }
+    }
+
     Write-Info "Abriendo la app web en $AppUrl"
     Open-BrowserSoon
+    $env:IA_PROFESOR_HOST = $AppHost
+    $env:IA_PROFESOR_PORT = "$AppPort"
     & $pythonExe (Join-Path $ProjectRoot "web_app.py")
     exit $LASTEXITCODE
 }
