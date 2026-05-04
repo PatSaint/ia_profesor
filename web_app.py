@@ -26,6 +26,14 @@ warnings.filterwarnings("ignore", message="FP16 is not supported on CPU; using F
 app = Flask(__name__)
 
 
+@app.after_request
+def add_cors_headers(response):
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PATCH, DELETE, OPTIONS"
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+    return response
+
+
 def ensure_ffmpeg_available() -> None:
     ffmpeg_dir = FFPLAY_PATH if os.path.isdir(FFPLAY_PATH) else os.path.dirname(FFPLAY_PATH)
     if ffmpeg_dir and os.path.exists(ffmpeg_dir):
@@ -88,6 +96,21 @@ class WebVoiceCoach:
             if os.path.exists(temp_path):
                 os.remove(temp_path)
 
+    def detect_response_language(self, text: str) -> str:
+        try:
+            return detect(text)
+        except Exception:
+            return DEFAULT_RESPONSE_LANGUAGE
+
+    def synthesize_for_text(self, text: str, lang: str | None = None) -> dict:
+        final_lang = (lang or "").strip() or self.detect_response_language(text)
+        audio_base64 = self.synthesize_speech_base64(text, final_lang)
+        return {
+            "ok": True,
+            "audio_base64": audio_base64,
+            "response_language": final_lang,
+        }
+
     def get_bootstrap_payload(self) -> dict:
         active_chat = self.conversation_manager.export_chat_payload()
         return {
@@ -120,23 +143,14 @@ class WebVoiceCoach:
             memory_snippets = llm_result["memory_snippets"]
             self.llm_interface.update_conversation(transcript, response, chat_id=chat_id)
 
-            try:
-                response_language = detect(response)
-            except Exception:
-                response_language = DEFAULT_RESPONSE_LANGUAGE
-
-            try:
-                audio_base64 = self.synthesize_speech_base64(response, response_language)
-            except Exception as tts_error:
-                print(f"[WEB][TTS] Audio generation failed: {tts_error}")
-                audio_base64 = ""
+            response_language = self.detect_response_language(response)
 
             return {
                 "ok": True,
                 "chat": self.conversation_manager.export_chat_payload(chat_id),
                 "transcript": transcript,
                 "response": response,
-                "audio_base64": audio_base64,
+                "audio_base64": "",
                 "response_language": response_language,
                 "memory_snippets": memory_snippets,
             }
@@ -153,23 +167,14 @@ class WebVoiceCoach:
             memory_snippets = llm_result["memory_snippets"]
             self.llm_interface.update_conversation(transcript, response, chat_id=chat_id)
 
-            try:
-                response_language = detect(response)
-            except Exception:
-                response_language = DEFAULT_RESPONSE_LANGUAGE
-
-            try:
-                audio_base64 = self.synthesize_speech_base64(response, response_language)
-            except Exception as tts_error:
-                print(f"[WEB][TTS] Audio generation failed: {tts_error}")
-                audio_base64 = ""
+            response_language = self.detect_response_language(response)
 
             return {
                 "ok": True,
                 "chat": self.conversation_manager.export_chat_payload(chat_id),
                 "transcript": transcript,
                 "response": response,
-                "audio_base64": audio_base64,
+                "audio_base64": "",
                 "response_language": response_language,
                 "memory_snippets": memory_snippets,
             }
@@ -283,6 +288,24 @@ def update_chat(chat_id: str):
     )
 
 
+@app.delete("/api/chats/<chat_id>")
+def delete_chat(chat_id: str):
+    try:
+        active_chat = coach.conversation_manager.delete_chat(chat_id)
+    except FileNotFoundError:
+        return json_error("Chat not found.", 404)
+
+    return jsonify(
+        {
+            "ok": True,
+            "active_chat": active_chat,
+            "chats": coach.conversation_manager.list_chats(),
+            "settings": coach.conversation_manager.get_settings(),
+            "providers": coach.provider_manager.get_ui_state(),
+        }
+    )
+
+
 @app.post("/api/settings")
 def update_settings():
     payload = request.get_json(silent=True) or {}
@@ -373,6 +396,21 @@ def disconnect_openai_web_login():
         return jsonify({"ok": True, "providers": providers})
     except Exception as error:
         print(f"[WEB] OpenAI browser disconnect error: {error}")
+        return json_error(str(error), 500)
+
+
+@app.post("/api/tts")
+def generate_tts():
+    payload = request.get_json(silent=True) or {}
+    text = (payload.get("text") or "").strip()
+    lang = (payload.get("lang") or "").strip()
+    if not text:
+        return json_error("Text is required for TTS.")
+
+    try:
+        return jsonify(coach.synthesize_for_text(text, lang or None))
+    except Exception as error:
+        print(f"[WEB][TTS] On-demand generation error: {error}")
         return json_error(str(error), 500)
 
 

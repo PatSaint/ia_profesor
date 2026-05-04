@@ -259,6 +259,33 @@ class ConversationManager:
         self._set_active_chat_id(chat_id)
         return chat
 
+    def delete_chat(self, chat_id: str) -> Dict[str, Any]:
+        chat_path = self._chat_path(chat_id)
+        if not os.path.exists(chat_path):
+            raise FileNotFoundError(f"Chat not found: {chat_id}")
+
+        chats = [chat for chat in self.index.get("chats", []) if chat.get("id") != chat_id]
+        self.index["chats"] = chats
+
+        try:
+            os.remove(chat_path)
+        except FileNotFoundError:
+            pass
+
+        if self.active_chat_id == chat_id:
+            next_chat_id = chats[0]["id"] if chats else None
+            if next_chat_id:
+                self._set_active_chat_id(next_chat_id)
+            else:
+                new_chat = self.create_chat(make_active=True)
+                next_chat_id = new_chat["id"]
+            self.active_chat_id = next_chat_id
+        else:
+            self._save_index()
+
+        self._sync_legacy_history(self.active_chat_id)
+        return self.export_chat_payload(self.active_chat_id)
+
     def update_chat(
         self,
         chat_id: str,

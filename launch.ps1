@@ -55,12 +55,13 @@ function Ensure-OllamaAvailable {
 
 function Ensure-OllamaRunning {
     if (-not (Ensure-OllamaAvailable)) {
-        throw "No encontré Ollama. Instalalo desde https://ollama.com/download/windows"
+        Write-WarnLine "No encontré Ollama. Sigo sin modo local; podés usar OpenAI/Gemini desde la web."
+        return $false
     }
 
     & ollama list *> $null
     if ($LASTEXITCODE -eq 0) {
-        return
+        return $true
     }
 
     Write-WarnLine "Ollama no estaba activo. Intentando iniciarlo..."
@@ -76,11 +77,12 @@ function Ensure-OllamaRunning {
         & ollama list *> $null
         if ($LASTEXITCODE -eq 0) {
             Write-Ok "Ollama quedó listo."
-            return
+            return $true
         }
     }
 
-    throw "No pude conectarme a Ollama. Abrilo manualmente y volvé a intentar."
+    Write-WarnLine "No pude conectarme a Ollama. Sigo igual; si querés modo local, abrilo manualmente después."
+    return $false
 }
 
 function Ensure-Model([string]$Model) {
@@ -272,6 +274,12 @@ function Ensure-Dependencies([string]$PythonExe) {
 }
 
 function Open-BrowserSoon {
+    $loadingPage = Join-Path $ProjectRoot "launch-wait.html"
+    if (Test-Path -LiteralPath $loadingPage) {
+        Start-Process -FilePath $loadingPage | Out-Null
+        return
+    }
+
     Start-Process -FilePath "powershell.exe" -ArgumentList @(
         "-NoProfile",
         "-WindowStyle", "Hidden",
@@ -286,8 +294,10 @@ try {
     $updated = Update-RepoIfPossible
     $pythonExe = Ensure-Venv
     Ensure-Dependencies -PythonExe $pythonExe
-    Ensure-OllamaRunning
-    Ensure-Model -Model $ModelName
+    $ollamaReady = Ensure-OllamaRunning
+    if ($ollamaReady) {
+        Ensure-Model -Model $ModelName
+    }
 
     if ($updated) {
         Write-Info "La app fue actualizada antes de abrirse."

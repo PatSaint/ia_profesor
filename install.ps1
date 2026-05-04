@@ -115,20 +115,27 @@ function Ensure-Python {
 function Ensure-Ollama {
     if (Test-CommandExists "ollama.exe") {
         Write-Ok "Ollama ya está disponible."
-        return
+        return $true
+    }
+
+    $answer = Read-Host "Ollama no está instalado. ¿Querés instalarlo ahora para usar modo local? (S/N)"
+    if ($answer -notmatch '^(s|si|sí|y|yes)$') {
+        Write-WarnLine "Seguimos sin Ollama. Después podés usar OpenAI/Gemini o instalar Ollama manualmente si querés modo local."
+        return $false
     }
 
     if (-not (Install-WithWinget -WingetId "Ollama.Ollama" -DisplayName "Ollama")) {
-        Write-WarnLine "Instalá Ollama desde https://ollama.com/download/windows y volvé a ejecutar el instalador."
-        Pause-And-Exit 1
+        Write-WarnLine "No pude instalar Ollama automáticamente. Seguimos sin modo local por ahora."
+        return $false
     }
 
     if (-not (Test-CommandExists "ollama.exe")) {
-        Write-WarnLine "Ollama se instaló, pero esta ventana todavía no lo detecta. Cerrá y volvé a ejecutar el instalador."
-        Pause-And-Exit 1
+        Write-WarnLine "Ollama se instaló, pero esta ventana todavía no lo detecta. Podés cerrar y reintentar luego si querés usar modo local."
+        return $false
     }
 
     Write-Ok "Ollama listo."
+    return $true
 }
 
 function Ensure-OllamaRunning {
@@ -136,7 +143,7 @@ function Ensure-OllamaRunning {
     & ollama list *> $null
     if ($LASTEXITCODE -eq 0) {
         Write-Ok "Ollama responde correctamente."
-        return
+        return $true
     }
 
     Write-WarnLine "Ollama no está respondiendo. Voy a intentar iniciarlo."
@@ -152,12 +159,12 @@ function Ensure-OllamaRunning {
         & ollama list *> $null
         if ($LASTEXITCODE -eq 0) {
             Write-Ok "Ollama quedó funcionando."
-            return
+            return $true
         }
     }
 
     Write-WarnLine "No pude confirmar que Ollama esté funcionando. Abrí Ollama manualmente y volvé a ejecutar el instalador."
-    Pause-And-Exit 1
+    return $false
 }
 
 function Ensure-Model([string]$Model) {
@@ -198,7 +205,7 @@ try {
     Write-Step "Chequeando requisitos"
     Ensure-Git
     $python = Ensure-Python
-    Ensure-Ollama
+    $ollamaInstalled = Ensure-Ollama
 
     Write-Step "Elegí dónde instalar"
     $defaultParent = (Get-Location).Path
@@ -245,9 +252,12 @@ try {
     }
     Write-Ok "Entorno virtual y dependencias listos."
 
-    Write-Step "Preparando Ollama"
-    Ensure-OllamaRunning
-    Ensure-Model -Model $ModelName
+    if ($ollamaInstalled) {
+        Write-Step "Preparando Ollama"
+        if (Ensure-OllamaRunning) {
+            Ensure-Model -Model $ModelName
+        }
+    }
 
     Write-Step "Creando acceso directo"
     $launcherPath = Join-Path $installPath "Iniciar ia_profesor.bat"

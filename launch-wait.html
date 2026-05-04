@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Iniciando ia_profesor...</title>
+  <style>
+    :root { color-scheme: dark; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(circle at 75% 78%, rgba(56,189,248,.22), transparent 24%),
+        radial-gradient(circle at 82% 85%, rgba(168,85,247,.22), transparent 18%),
+        linear-gradient(135deg, #0f172a, #111827 55%, #0b1220);
+      color: #e5e7eb;
+      font-family: Inter, Arial, sans-serif;
+    }
+    .card {
+      width: min(92vw, 540px);
+      padding: 32px 28px;
+      border-radius: 24px;
+      background: rgba(15, 23, 42, .82);
+      border: 1px solid rgba(148, 163, 184, .18);
+      box-shadow: 0 24px 60px rgba(0,0,0,.35);
+      text-align: center;
+    }
+    h1 { margin: 0 0 12px; font-size: 28px; }
+    p { margin: 0; color: #cbd5e1; line-height: 1.6; }
+    .loader {
+      margin: 26px auto 18px;
+      width: 72px;
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+    }
+    .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 999px;
+      background: #38bdf8;
+      animation: bounce 1.2s infinite ease-in-out;
+    }
+    .dot:nth-child(2) { animation-delay: .15s; background: #22c55e; }
+    .dot:nth-child(3) { animation-delay: .3s; background: #a855f7; }
+    .status {
+      margin-top: 14px;
+      font-size: 14px;
+      color: #93c5fd;
+    }
+    @keyframes bounce {
+      0%, 80%, 100% { transform: scale(.65); opacity: .55; }
+      40% { transform: scale(1); opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Esperando inicio de web...</h1>
+    <p>Por favor espera mientras ia_profesor termina de cargar.</p>
+    <div class="loader">
+      <span class="dot"></span>
+      <span class="dot"></span>
+      <span class="dot"></span>
+    </div>
+    <div id="status" class="status">Conectando con la aplicación local...</div>
+  </div>
+
+  <script>
+    const appUrl = 'http://127.0.0.1:5000';
+    const bootstrapUrl = `${appUrl}/api/bootstrap`;
+    const statusEl = document.getElementById('status');
+
+    async function waitForApp() {
+      try {
+        const response = await fetch(bootstrapUrl, { cache: 'no-store' });
+        if (response.ok) {
+          statusEl.textContent = 'Aplicación lista. Redirigiendo...';
+          window.location.replace(appUrl);
+          return;
+        }
+      } catch (_error) {
+        // still starting
+      }
+
+      statusEl.textContent = 'La aplicación sigue iniciando...';
+      setTimeout(waitForApp, 1000);
+    }
+
+    waitForApp();
+  </script>
+</body>
+</html>

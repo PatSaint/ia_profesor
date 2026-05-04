@@ -25,7 +25,7 @@ FFPLAY_PATH = os.getenv(
 # CUSTOMIZE: LLM model settings - web coach uses this Ollama model
 LLM_MODEL = "qwen2.5:1.5b"
 OPENAI_DEFAULT_MODEL = "gpt-4o-mini"
-GEMINI_DEFAULT_MODEL = "gemini-1.5-flash"
+GEMINI_DEFAULT_MODEL = "gemini-2.0-flash"
 OPENAI_WEB_DEFAULT_MODEL = "gpt-5.4"
 OPENAI_WEB_MODELS = ["gpt-5.5", "gpt-5.4", "gpt-5.4-mini", "gpt-5.3-codex", "gpt-5.2"]
 OPENAI_WEB_CLIENT_ID = "app_EMoamEEZ73f0CkXaXp7hrann"

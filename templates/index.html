@@ -50,14 +50,54 @@
     .search-input, .field, .textarea, .select {
       width: 100%; background: #0f172a; color: var(--text); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px;
     }
-    .sidebar-list { overflow: auto; padding: 10px; display: grid; gap: 8px; flex: 1 1 auto; min-height: 0; }
+    .sidebar-list { overflow: auto; padding: 4px; display: flex; flex-direction: column; align-items: stretch; gap: 3px; flex: 1 1 auto; min-height: 0; }
     .chat-item {
       text-align: left; width: 100%; border: 1px solid transparent; background: transparent; color: var(--text);
-      border-radius: 14px; padding: 12px; display: grid; gap: 6px;
+      border-radius: 10px; padding: 4px 8px; display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0;
     }
     .chat-item:hover { background: rgba(31, 41, 55, .75); }
     .chat-item.active { background: rgba(31, 41, 55, 1); border-color: #334155; }
-    .chat-title { font-weight: 700; font-size: 14px; }
+    .chat-title { font-weight: 700; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.15; min-width: 0; flex: 1 1 auto; border: 0; background: transparent; color: inherit; padding: 0; text-align: left; }
+    .chat-actions { position: relative; flex: 0 0 auto; }
+    .chat-menu-btn {
+      border: 1px solid rgba(148, 163, 184, .16);
+      background: rgba(15, 23, 42, .55);
+      color: #cbd5e1;
+      border-radius: 8px;
+      width: 26px;
+      height: 22px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      line-height: 1;
+      padding: 0;
+    }
+    .chat-menu {
+      position: absolute;
+      top: 24px;
+      right: 0;
+      min-width: 110px;
+      z-index: 6;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #111827;
+      box-shadow: 0 12px 30px rgba(0,0,0,.32);
+      padding: 4px;
+      display: none;
+    }
+    .chat-menu.open { display: block; }
+    .chat-menu-item {
+      width: 100%;
+      border: 0;
+      background: transparent;
+      color: #fecaca;
+      text-align: left;
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 12px;
+    }
+    .chat-menu-item:hover { background: rgba(127, 29, 29, .2); }
     .chat-preview, .chat-date, .muted { color: var(--muted); font-size: 12px; }
 
     .main { display: grid; grid-template-rows: auto 1fr auto; min-width: 0; min-height: 0; overflow: hidden; }
@@ -96,8 +136,8 @@
       gap: 8px;
     }
 
-    .conversation-wrap { overflow: auto; min-height: 0; padding: 24px 20px 120px; }
-    .conversation { max-width: 900px; margin: 0 auto; display: grid; gap: 18px; }
+    .conversation-wrap { overflow: auto; min-height: 0; padding: 24px 20px 120px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='900' height='560' viewBox='0 0 900 560'%3E%3Cdefs%3E%3CradialGradient id='glow1' cx='72%25' cy='76%25' r='38%25'%3E%3Cstop offset='0%25' stop-color='%2338bdf8' stop-opacity='0.42'/%3E%3Cstop offset='100%25' stop-color='%2338bdf8' stop-opacity='0'/%3E%3C/radialGradient%3E%3CradialGradient id='glow2' cx='88%25' cy='86%25' r='28%25'%3E%3Cstop offset='0%25' stop-color='%23a855f7' stop-opacity='0.35'/%3E%3Cstop offset='100%25' stop-color='%23a855f7' stop-opacity='0'/%3E%3C/radialGradient%3E%3CradialGradient id='glow3' cx='82%25' cy='62%25' r='22%25'%3E%3Cstop offset='0%25' stop-color='%2310b981' stop-opacity='0.22'/%3E%3Cstop offset='100%25' stop-color='%2310b981' stop-opacity='0'/%3E%3C/radialGradient%3E%3ClinearGradient id='line' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%2338bdf8' stop-opacity='0.18'/%3E%3Cstop offset='100%25' stop-color='%23a855f7' stop-opacity='0.18'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='900' height='560' fill='none'/%3E%3Ccircle cx='700' cy='350' r='180' fill='url(%23glow1)'/%3E%3Ccircle cx='810' cy='420' r='125' fill='url(%23glow2)'/%3E%3Ccircle cx='770' cy='250' r='105' fill='url(%23glow3)'/%3E%3Cpath d='M560 360 C640 300, 740 320, 840 250' stroke='url(%23line)' stroke-width='2.5' fill='none' opacity='0.7'/%3E%3Cpath d='M590 430 C675 390, 760 405, 860 355' stroke='url(%23line)' stroke-width='1.5' fill='none' opacity='0.5'/%3E%3Ctext x='675' y='525' fill='%23e2e8f0' fill-opacity='0.42' font-family='Arial,sans-serif' font-size='34' font-weight='700'%3Eby PatSaint%3C/text%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right bottom; background-size: 520px auto; }
+    .conversation { width: 100%; display: grid; gap: 18px; }
     .empty-state, .memory-banner, .settings-panel, .composer-card, .message, .provider-panel, .provider-status {
       border: 1px solid var(--border); border-radius: 18px; background: rgba(17, 24, 39, .92);
     }
@@ -106,22 +146,36 @@
     .memory-banner.visible { display: block; }
     .memory-banner ul { margin: 10px 0 0; padding-left: 18px; color: var(--muted); }
 
-    .message { overflow: hidden; }
-    .message.user { background: linear-gradient(180deg, rgba(29, 78, 216, .22), rgba(17, 24, 39, .9)); }
-    .message.assistant { background: linear-gradient(180deg, rgba(12, 74, 110, .28), rgba(17, 24, 39, .9)); }
-    .message-head { padding: 12px 16px; border-bottom: 1px solid rgba(51, 65, 85, .6); font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: #cbd5e1; }
+    .message { overflow: hidden; width: min(100%, 920px); }
+    .message.user { background: linear-gradient(180deg, rgba(67, 56, 202, .36), rgba(30, 41, 59, .98)); margin-left: auto; border-color: rgba(129, 140, 248, .32); }
+    .message.assistant { background: linear-gradient(180deg, rgba(8, 145, 178, .26), rgba(15, 23, 42, .98)); margin-right: auto; border-color: rgba(34, 211, 238, .22); }
+    .message-head { padding: 12px 16px; border-bottom: 1px solid rgba(51, 65, 85, .6); font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: #cbd5e1; display:flex; align-items:center; justify-content:space-between; gap:10px; }
     .message-body { padding: 16px; white-space: pre-wrap; line-height: 1.55; }
-    .message-time { color: var(--muted); font-size: 12px; padding: 0 16px 16px; }
+    .message-time { color: var(--muted); font-size: 12px; padding: 0 16px 16px; display:flex; align-items:center; justify-content:space-between; gap:10px; }
+    .message-speak-btn {
+      border: 1px solid rgba(148, 163, 184, .25);
+      background: rgba(15, 23, 42, .75);
+      color: #e2e8f0;
+      border-radius: 999px;
+      width: 34px;
+      height: 34px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      font-size: 15px;
+      flex: 0 0 auto;
+    }
+    .message-speak-btn:hover { filter: brightness(1.12); }
 
     .composer-shell { position: sticky; bottom: 0; padding: 16px 20px 20px; background: linear-gradient(180deg, rgba(15, 23, 42, 0), rgba(15, 23, 42, 0.94) 30%); }
-    .composer-card { max-width: 900px; margin: 0 auto; padding: 16px; background: rgba(11, 18, 32, .96); }
+    .composer-card { width: 100%; padding: 16px; background: rgba(11, 18, 32, .96); }
     .composer-row { display: flex; gap: 12px; align-items: flex-end; }
     .composer-input {
-      flex: 1; min-height: 110px; resize: vertical; background: var(--panel); color: var(--text);
+      flex: 1; min-height: 56px; resize: vertical; background: var(--panel); color: var(--text);
       border: 1px solid var(--border); border-radius: 16px; padding: 14px;
     }
     .composer-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; align-items: center; }
-    .record-btn, .send-btn, .stop-btn { border-radius: 999px; padding: 12px 18px; border: none; font-weight: 700; }
+    .record-btn, .send-btn, .stop-btn { border-radius: 999px; padding: 6px 10px; border: none; font-weight: 700; font-size: 13px; }
     .record-btn { background: #22c55e; color: #052e16; }
     .record-btn.recording { background: var(--danger); color: white; }
     .send-btn { background: var(--accent-2); color: #082f49; }
@@ -179,9 +233,9 @@
       0%, 100% { box-shadow: 0 0 0 rgba(16, 163, 127, 0); }
       50% { box-shadow: 0 0 18px rgba(16, 163, 127, .18); }
     }
-    .audio-player { width: 100%; margin-top: 12px; }
+    .audio-player { width: 132px; max-width: 132px; height: 28px; margin: 0; }
 
-    .settings-panel { display: none; max-width: 900px; margin: 0 auto 18px; }
+    .settings-panel { display: none; width: 100%; margin: 0 0 18px; }
     .settings-panel.open { display: block; }
     .settings-grid { display: grid; gap: 14px; grid-template-columns: 1fr 1fr; }
     .settings-grid .full { grid-column: 1 / -1; }
@@ -273,6 +327,30 @@
                   <label class="label" for="geminiApiKeyInput">Gemini API key</label>
                   <input id="geminiApiKeyInput" class="field" type="password" placeholder="AIza..." autocomplete="off" />
                 </div>
+                <div id="selfHostedFields" class="provider-only full" data-provider-fields="self_hosted">
+                  <div class="provider-grid">
+                    <div>
+                      <label class="label" for="selfHostedPresetSelect">Tipo</label>
+                      <select id="selfHostedPresetSelect" class="select">
+                        <option value="openai_compatible">OpenAI-compatible</option>
+                        <option value="ollama">Ollama</option>
+                        <option value="lmstudio">LM Studio</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label class="label" for="selfHostedNameInput">Nombre visible</label>
+                      <input id="selfHostedNameInput" class="field" type="text" placeholder="Ej: Ollama esposa / sinllama" />
+                    </div>
+                    <div class="full">
+                      <label class="label" for="selfHostedUrlInput">Base URL / IP / puerto</label>
+                      <input id="selfHostedUrlInput" class="field" type="text" placeholder="Ej: http://127.0.0.1:11434 o http://192.168.1.50:1234/v1" />
+                    </div>
+                    <div class="full">
+                      <label class="label" for="selfHostedApiKeyInput">API key opcional</label>
+                      <input id="selfHostedApiKeyInput" class="field" type="password" placeholder="Solo si tu servidor la necesita" autocomplete="off" />
+                    </div>
+                  </div>
+                </div>
                 <div id="openaiWebFields" class="provider-only full" data-provider-fields="openai_web">
                   <div class="provider-notice">
                     Portado desde OpenCode: login OAuth PKCE contra auth.openai.com, refresh local del token y requests Codex-compatible a ChatGPT.
@@ -334,6 +412,14 @@
             <button id="recordButton" class="record-btn" type="button">🎤 Start recording</button>
             <button id="stopAudioButton" class="stop-btn" type="button">🔇 Stop voice</button>
             <button id="sendTextButton" class="send-btn" type="button">✍️ Send text</button>
+            <label style="display:flex; align-items:center; gap:8px; color:#cbd5e1; font-size:13px;">
+              <span>¿Escuchar respuestas?</span>
+              <select id="replyAudioModeSelect" class="select" style="width:auto; min-width:140px; padding:10px 12px;">
+                <option value="automatic">Automático</option>
+                <option value="manual">Manual</option>
+              </select>
+            </label>
+            <audio id="player" class="audio-player" controls></audio>
             <div id="processingPill" class="processing-pill" aria-live="polite">
               <span class="processing-dot"></span>
               <span class="processing-bars"><span></span><span></span><span></span></span>
@@ -341,7 +427,6 @@
             </div>
             <span id="status" class="status">Loading…</span>
           </div>
-          <audio id="player" class="audio-player" controls></audio>
         </div>
       </div>
     </main>
@@ -371,6 +456,10 @@
     const ollamaBaseUrlInput = document.getElementById('ollamaBaseUrlInput');
     const openaiApiKeyInput = document.getElementById('openaiApiKeyInput');
     const geminiApiKeyInput = document.getElementById('geminiApiKeyInput');
+    const selfHostedPresetSelect = document.getElementById('selfHostedPresetSelect');
+    const selfHostedNameInput = document.getElementById('selfHostedNameInput');
+    const selfHostedUrlInput = document.getElementById('selfHostedUrlInput');
+    const selfHostedApiKeyInput = document.getElementById('selfHostedApiKeyInput');
     const openaiWebAuthMeta = document.getElementById('openaiWebAuthMeta');
     const connectProviderButton = document.getElementById('connectProviderButton');
     const activateProviderButton = document.getElementById('activateProviderButton');
@@ -388,6 +477,7 @@
     const recordButton = document.getElementById('recordButton');
     const stopAudioButton = document.getElementById('stopAudioButton');
     const sendTextButton = document.getElementById('sendTextButton');
+    const replyAudioModeSelect = document.getElementById('replyAudioModeSelect');
     const textInput = document.getElementById('textInput');
     const statusEl = document.getElementById('status');
     const player = document.getElementById('player');
@@ -402,9 +492,27 @@
     let processingTimer = null;
     let processingStartedAt = 0;
     let openAIWebLoginPoll = null;
+    let activeSpeechKey = null;
 
     function setStatus(text) {
       statusEl.textContent = text;
+    }
+
+    function getReplyAudioMode() {
+      return replyAudioModeSelect.value === 'manual' ? 'manual' : 'automatic';
+    }
+
+    function applySelfHostedPresetDefaults(force = false) {
+      const preset = selfHostedPresetSelect.value;
+      const currentUrl = selfHostedUrlInput.value.trim();
+      const defaults = {
+        ollama: 'http://127.0.0.1:11434',
+        lmstudio: 'http://127.0.0.1:1234/v1',
+        openai_compatible: 'http://127.0.0.1:1234/v1'
+      };
+      if (force || !currentUrl) {
+        selfHostedUrlInput.value = defaults[preset] || defaults.openai_compatible;
+      }
     }
 
     function setInteractionLocked(locked) {
@@ -426,6 +534,10 @@
       ollamaBaseUrlInput.disabled = locked;
       openaiApiKeyInput.disabled = locked;
       geminiApiKeyInput.disabled = locked;
+      selfHostedPresetSelect.disabled = locked;
+      selfHostedNameInput.disabled = locked;
+      selfHostedUrlInput.disabled = locked;
+      selfHostedApiKeyInput.disabled = locked;
       openaiWebLoginButton.disabled = locked;
       openaiWebDisconnectButton.disabled = locked;
       globalPromptInput.disabled = locked;
@@ -525,7 +637,9 @@
         : (providers[0]?.id || 'ollama');
 
       document.querySelectorAll('[data-provider-fields]').forEach(section => {
-        section.classList.toggle('visible', section.dataset.providerFields === providerSelect.value);
+        const isSelfHosted = providerSelect.value === 'self_hosted_new' || providerSelect.value.startsWith('self_hosted:');
+        const shouldShow = section.dataset.providerFields === providerSelect.value || (section.dataset.providerFields === 'self_hosted' && isSelfHosted);
+        section.classList.toggle('visible', shouldShow);
       });
 
       const provider = getSelectedProvider();
@@ -544,6 +658,13 @@
       geminiApiKeyInput.placeholder = provider?.api_key_configured
         ? `Guardada: ${provider.api_key_masked}`
         : 'AIza...';
+      if (provider?.id === 'self_hosted_new' || provider?.id?.startsWith('self_hosted:')) {
+        selfHostedPresetSelect.value = provider?.preset || 'openai_compatible';
+        selfHostedNameInput.value = provider?.custom_name || '';
+        selfHostedUrlInput.value = provider?.base_url || '';
+        selfHostedApiKeyInput.placeholder = provider?.api_key_configured ? `Guardada: ${provider.api_key_masked}` : 'Solo si aplica';
+        applySelfHostedPresetDefaults(false);
+      }
       openaiWebAuthMeta.textContent = provider?.id === 'openai_web'
         ? (provider.oauth_connected
             ? `Login activo: ${provider.oauth_email || provider.oauth_account_id || 'cuenta conectada'}`
@@ -562,11 +683,13 @@
 
       activateProviderButton.disabled = isProcessing || !provider || provider.supports_activation === false;
       const isOpenAIWeb = providerSelect.value === 'openai_web';
+      const isSelfHosted = providerSelect.value === 'self_hosted_new' || providerSelect.value.startsWith('self_hosted:');
       connectProviderButton.classList.toggle('hidden', isOpenAIWeb);
       openaiWebLoginButton.classList.toggle('hidden', !isOpenAIWeb);
       openaiWebDisconnectButton.classList.toggle('hidden', !isOpenAIWeb);
       openaiWebDisconnectButton.disabled = isProcessing || !provider?.oauth_connected;
       openaiWebLoginButton.textContent = provider?.oauth_connected ? 'Renovar / reingresar en navegador' : 'Iniciar sesión con navegador';
+      connectProviderButton.textContent = isSelfHosted ? 'Guardar servidor' : 'Guardar / conectar';
     }
 
     function scrollConversationToBottom() {
@@ -592,16 +715,52 @@
       });
 
       chatListEl.innerHTML = chats.map(chat => `
-        <button class="chat-item ${state.activeChat && chat.id === state.activeChat.id ? 'active' : ''}" data-chat-id="${chat.id}" type="button">
-          <div class="chat-title">${escapeHtml(chat.title || 'New chat')}</div>
-          <div class="chat-preview">${escapeHtml(chat.preview || 'No messages yet.')}</div>
-          <div class="chat-date">${escapeHtml(formatDate(chat.updated_at))}</div>
-        </button>
+        <div class="chat-item ${state.activeChat && chat.id === state.activeChat.id ? 'active' : ''}">
+          <button class="chat-title" data-chat-id="${chat.id}" type="button">${escapeHtml(chat.title || 'New chat')}</button>
+          <div class="chat-actions">
+            <button class="chat-menu-btn" data-menu-button="${chat.id}" type="button" title="Opciones">...</button>
+            <div class="chat-menu" data-chat-menu="${chat.id}">
+              <button class="chat-menu-item" data-delete-chat="${chat.id}" type="button">Eliminar chat</button>
+            </div>
+          </div>
+        </div>
       `).join('') || '<div class="empty-state"><strong>No chats yet.</strong><div class="muted">Create one and start practicing.</div></div>';
 
       chatListEl.querySelectorAll('[data-chat-id]').forEach(button => {
         button.addEventListener('click', () => openChat(button.dataset.chatId));
       });
+
+      chatListEl.querySelectorAll('[data-menu-button]').forEach(button => {
+        button.addEventListener('click', event => {
+          event.stopPropagation();
+          const chatId = button.dataset.menuButton;
+          document.querySelectorAll('[data-chat-menu]').forEach(menu => {
+            menu.classList.toggle('open', menu.dataset.chatMenu === chatId && !menu.classList.contains('open'));
+          });
+        });
+      });
+
+      chatListEl.querySelectorAll('[data-delete-chat]').forEach(button => {
+        button.addEventListener('click', async event => {
+          event.stopPropagation();
+          const chatId = button.dataset.deleteChat;
+          if (!chatId) return;
+          const ok = window.confirm('¿Eliminar este chat?');
+          if (!ok) return;
+          await deleteChat(chatId);
+        });
+      });
+    }
+
+    async function deleteChat(chatId) {
+      setStatus('Eliminando chat...');
+      try {
+        const data = await fetchJson(`/api/chats/${chatId}`, { method: 'DELETE' });
+        applyPayload(data);
+        setStatus('Chat eliminado');
+      } catch (error) {
+        setStatus(`Error: ${error.message}`);
+      }
     }
 
     function renderMessages() {
@@ -628,13 +787,28 @@
         return;
       }
 
-      messageListEl.innerHTML = messages.map(message => `
+      messageListEl.innerHTML = messages.map((message, index) => `
         <article class="message ${message.role === 'user' ? 'user' : 'assistant'}">
-          <div class="message-head">${message.role === 'user' ? 'You' : 'Coach'}</div>
+          <div class="message-head">
+            <span>${message.role === 'user' ? 'You' : 'Coach'}</span>
+            ${message.role === 'assistant' ? `<button class="message-speak-btn" type="button" title="Escuchar respuesta" data-speak-index="${index}">🔊</button>` : ''}
+          </div>
           <div class="message-body">${escapeHtml(message.content)}</div>
-          <div class="message-time">${escapeHtml(formatDate(message.created_at))}</div>
+          <div class="message-time">
+            <span>${escapeHtml(formatDate(message.created_at))}</span>
+            ${message.role === 'assistant' ? `<button class="message-speak-btn" type="button" title="Escuchar respuesta" data-speak-index="${index}">🔊</button>` : ''}
+          </div>
         </article>
       `).join('');
+
+      messageListEl.querySelectorAll('[data-speak-index]').forEach(button => {
+        button.addEventListener('click', async () => {
+          const index = Number(button.dataset.speakIndex);
+          const message = state.activeChat?.messages?.[index];
+          if (!message?.content) return;
+          await playResponseAudio(message.content, `${state.activeChat?.id || 'chat'}:${index}`);
+        });
+      });
 
       scrollConversationToBottom();
     }
@@ -756,6 +930,12 @@
         if (provider.id === 'ollama') body.base_url = ollamaBaseUrlInput.value;
         if (provider.id === 'openai_api' && openaiApiKeyInput.value.trim()) body.api_key = openaiApiKeyInput.value.trim();
         if (provider.id === 'gemini_api' && geminiApiKeyInput.value.trim()) body.api_key = geminiApiKeyInput.value.trim();
+        if (provider.id === 'self_hosted_new' || provider.id.startsWith('self_hosted:')) {
+          body.custom_name = selfHostedNameInput.value.trim();
+          body.base_url = selfHostedUrlInput.value.trim();
+          body.api_key = selfHostedApiKeyInput.value.trim();
+          body.preset = selfHostedPresetSelect.value;
+        }
 
         const data = await fetchJson('/api/providers/connect', {
           method: 'POST',
@@ -914,6 +1094,36 @@
       }
     }
 
+    async function requestTtsForText(text, lang = '') {
+      return fetchJson('/api/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, lang })
+      });
+    }
+
+    async function playResponseAudio(text, speechKey, lang = '') {
+      if (!text) return;
+      activeSpeechKey = speechKey;
+      player.pause();
+      player.currentTime = 0;
+      setStatus('Generando audio...');
+
+      try {
+        const data = await requestTtsForText(text, lang);
+        if (activeSpeechKey !== speechKey) return;
+        if (data.audio_base64) {
+          player.src = `data:audio/mpeg;base64,${data.audio_base64}`;
+          await player.play().catch(() => {});
+          setStatus('Reproduciendo audio');
+        } else {
+          setStatus('No se pudo generar audio');
+        }
+      } catch (error) {
+        setStatus(`Error: ${error.message}`);
+      }
+    }
+
     function getSupportedMimeType() {
       const candidates = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'];
       return candidates.find(type => MediaRecorder.isTypeSupported(type)) || '';
@@ -954,12 +1164,9 @@
         }
 
         applyPayload(data);
-        if (data.audio_base64) {
-          player.src = `data:audio/mpeg;base64,${data.audio_base64}`;
-          await player.play().catch(() => {});
-        } else {
-          player.removeAttribute('src');
-          player.load();
+        if (getReplyAudioMode() === 'automatic' && data.response) {
+          setStatus('Respuesta lista. Generando audio...');
+          await playResponseAudio(data.response, `${state.activeChat.id}:latest`, data.response_language || '');
         }
         setStatus('Ready');
       } catch (error) {
@@ -990,12 +1197,9 @@
           body: JSON.stringify({ text })
         });
         applyPayload(data);
-        if (data.audio_base64) {
-          player.src = `data:audio/mpeg;base64,${data.audio_base64}`;
-          await player.play().catch(() => {});
-        } else {
-          player.removeAttribute('src');
-          player.load();
+        if (getReplyAudioMode() === 'automatic' && data.response) {
+          setStatus('Respuesta lista. Generando audio...');
+          await playResponseAudio(data.response, `${state.activeChat.id}:latest`, data.response_language || '');
         }
         setStatus('Ready');
       } catch (error) {
@@ -1030,6 +1234,7 @@
     renameChatButton.addEventListener('click', renameChat);
     saveSettingsButton.addEventListener('click', saveSettings);
     providerSelect.addEventListener('change', renderProviderPanel);
+    selfHostedPresetSelect.addEventListener('change', () => applySelfHostedPresetDefaults(true));
     quickProviderSelect.addEventListener('change', async () => {
       const provider = getProviderMap()[quickProviderSelect.value];
       const nextModel = provider?.selected_model || provider?.available_models?.[0] || quickModelSelect.value;
@@ -1065,9 +1270,15 @@
     });
 
     stopAudioButton.addEventListener('click', () => {
+      activeSpeechKey = null;
       player.pause();
       player.currentTime = 0;
       setStatus('Audio stopped');
+    });
+
+    replyAudioModeSelect.value = localStorage.getItem('ia_profesor.replyAudioMode') || 'automatic';
+    replyAudioModeSelect.addEventListener('change', () => {
+      localStorage.setItem('ia_profesor.replyAudioMode', replyAudioModeSelect.value);
     });
 
     sendTextButton.addEventListener('click', sendText);

@@ -76,6 +76,19 @@ class ProviderManager:
                     "connection_status": "Sign in with your ChatGPT browser account to enable Codex-compatible chat.",
                     "last_error": "",
                 },
+                "self_hosted_new": {
+                    "label": "Agregar servidor local/red",
+                    "enabled": False,
+                    "custom_name": "",
+                    "base_url": "http://127.0.0.1:1234/v1",
+                    "selected_model": "",
+                    "available_models": [],
+                    "connection_status": "Agregá un servidor local, de red o OpenAI-compatible.",
+                    "last_error": "",
+                    "preset": "openai_compatible",
+                    "api_key": "",
+                    "is_template": True,
+                },
             },
         }
 
@@ -110,6 +123,12 @@ class ProviderManager:
             if isinstance(stored, dict):
                 provider_defaults.update(stored)
             merged_providers[provider_id] = provider_defaults
+
+        for provider_id, stored in (config.get("providers") or {}).items():
+            if provider_id in merged_providers:
+                continue
+            if isinstance(stored, dict):
+                merged_providers[provider_id] = stored
 
         active_provider = merged.get("active_provider")
         if active_provider not in merged_providers:
@@ -176,14 +195,17 @@ class ProviderManager:
                     "label": provider.get("label", provider_id),
                     "enabled": bool(provider.get("enabled")),
                     "supports_chat": True,
-                    "supports_activation": True,
+                    "supports_activation": not bool(provider.get("is_template")),
                     "selected_model": provider.get("selected_model", ""),
                     "available_models": provider.get("available_models", []),
                     "connection_status": provider.get("connection_status", ""),
                     "last_error": provider.get("last_error", ""),
-                    "base_url": provider.get("base_url", "") if provider_id == "ollama" else "",
-                    "api_key_configured": bool(provider.get("api_key")) if provider_id in {"openai_api", "gemini_api"} else False,
-                    "api_key_masked": self._mask_secret(provider.get("api_key", "")) if provider_id in {"openai_api", "gemini_api"} else "",
+                    "base_url": provider.get("base_url", "") if provider_id == "ollama" or provider_id.startswith("self_hosted:") or provider_id == "self_hosted_new" else "",
+                    "api_key_configured": bool(provider.get("api_key")) if provider_id in {"openai_api", "gemini_api"} or provider_id.startswith("self_hosted:") or provider_id == "self_hosted_new" else False,
+                    "api_key_masked": self._mask_secret(provider.get("api_key", "")) if provider_id in {"openai_api", "gemini_api"} or provider_id.startswith("self_hosted:") or provider_id == "self_hosted_new" else "",
+                    "preset": provider.get("preset", "") if provider_id.startswith("self_hosted:") or provider_id == "self_hosted_new" else "",
+                    "custom_name": provider.get("custom_name", "") if provider_id.startswith("self_hosted:") or provider_id == "self_hosted_new" else "",
+                    "is_template": bool(provider.get("is_template")),
                     "oauth_connected": bool(public_auth_state.get("connected")) if provider_id == "openai_web" else False,
                     "oauth_email": public_auth_state.get("email", "") if provider_id == "openai_web" else "",
                     "oauth_account_id": public_auth_state.get("account_id", "") if provider_id == "openai_web" else "",
@@ -209,6 +231,10 @@ class ProviderManager:
                 "storage, automatic refresh, and ChatGPT Codex-compatible requests."
             ),
         }
+        if provider_id == "self_hosted_new":
+            return "Creá conexiones locales o de red: Ollama, LM Studio o cualquier servidor OpenAI-compatible."
+        if provider_id.startswith("self_hosted:"):
+            return "Servidor self-hosted/local o en red. Puede ser Ollama, LM Studio u otro backend OpenAI-compatible."
         return notes.get(provider_id, "")
 
     def _sync_openai_web_provider(self, providers: Optional[Dict[str, Any]] = None) -> None:
@@ -265,6 +291,9 @@ class ProviderManager:
         return self.get_ui_state()
 
     def configure_provider(self, provider_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+        if provider_id == "self_hosted_new" or provider_id.startswith("self_hosted:"):
+            return self._configure_self_hosted(provider_id, payload)
+
         provider = self._provider(provider_id)
 
         if provider_id == "openai_web":
@@ -313,6 +342,8 @@ class ProviderManager:
 
         if provider_id == "ollama":
             models = self._list_ollama_models(provider)
+        elif provider_id.startswith("self_hosted:"):
+            models = self._list_self_hosted_models(provider)
         elif provider_id == "openai_api":
             api_key = (provider.get("api_key") or "").strip()
             if not api_key:
@@ -344,6 +375,8 @@ class ProviderManager:
         provider = self._provider(provider_id)
         if provider_id == "openai_web" and not self.openai_web_auth.is_connected():
             raise ProviderError("Connect OpenAI browser login before activating it.")
+        if provider.get("is_template"):
+            raise ProviderError("Guardá primero este servidor antes de activarlo.")
 
         if provider_id != "ollama" and not provider.get("enabled"):
             raise ProviderError("Connect this provider before activating it.")
@@ -385,6 +418,9 @@ class ProviderManager:
                 return self._chat_with_gemini(provider.get("api_key", ""), model, messages)
             if provider_id == "openai_web":
                 return self._chat_with_openai_web(model, messages)
+            if provider_id.startswith("self_hosted:"):
+                provider = self._provider(provider_id)
+                return self._chat_with_self_hosted(provider, model, messages)
             raise ProviderError(f"Provider {provider_id} is not supported for chat.")
         except Exception as error:
             print(f"[PROVIDERS] Active provider '{provider_id}' failed: {error}")
@@ -429,10 +465,116 @@ class ProviderManager:
         preferred = [model for model in ids if re.match(r"^(gpt|o[134])", model)]
         return sorted(preferred or ids)
 
+    def _normalize_self_hosted_url(self, base_url: str, preset: str) -> str:
+        url = (base_url or "").strip().rstrip("/")
+        if not url:
+            raise ProviderError("Base URL is required.")
+        if not re.match(r"^https?://", url, re.IGNORECASE):
+            url = f"http://{url}"
+        if preset != "ollama" and not url.endswith("/v1"):
+            url = f"{url}/v1"
+        return url
+
+    def _list_self_hosted_models(self, provider: Dict[str, Any]) -> List[str]:
+        preset = (provider.get("preset") or "openai_compatible").strip()
+        base_url = self._normalize_self_hosted_url(provider.get("base_url", ""), preset)
+        provider["base_url"] = base_url
+
+        if preset == "ollama":
+            return self._list_ollama_models(provider)
+
+        headers = {"Content-Type": "application/json"}
+        api_key = (provider.get("api_key") or "").strip()
+        if api_key:
+            headers["Authorization"] = f"Bearer {api_key}"
+        response = requests.get(f"{base_url}/models", headers=headers, timeout=PROVIDER_REQUEST_TIMEOUT)
+        response.raise_for_status()
+        payload = response.json()
+        models = [item.get("id", "") for item in payload.get("data", []) if isinstance(item, dict)]
+        return self._sanitize_model_list(models, provider.get("selected_model", ""))
+
+    def _chat_with_self_hosted(self, provider: Dict[str, Any], model: str, messages: List[Dict[str, str]]) -> str:
+        preset = (provider.get("preset") or "openai_compatible").strip()
+        base_url = self._normalize_self_hosted_url(provider.get("base_url", ""), preset)
+        provider["base_url"] = base_url
+        if preset == "ollama":
+            client = ollama.Client(host=base_url)
+            response = client.chat(model=model, messages=messages)
+            return response["message"]["content"].strip()
+
+        headers = {"Content-Type": "application/json"}
+        api_key = (provider.get("api_key") or "").strip()
+        if api_key:
+            headers["Authorization"] = f"Bearer {api_key}"
+        response = requests.post(
+            f"{base_url}/chat/completions",
+            headers=headers,
+            json={"model": model, "messages": messages},
+            timeout=PROVIDER_REQUEST_TIMEOUT,
+        )
+        response.raise_for_status()
+        return self._extract_openai_text(response.json())
+
+    def _configure_self_hosted(self, provider_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+        custom_name = (payload.get("custom_name") or "").strip()
+        preset = (payload.get("preset") or "openai_compatible").strip() or "openai_compatible"
+        base_url = (payload.get("base_url") or "").strip()
+        api_key = (payload.get("api_key") or "").strip()
+        selected_model = (payload.get("selected_model") or "").strip()
+
+        if not custom_name:
+            raise ProviderError("A display name is required for the local/server AI.")
+        if not base_url:
+            raise ProviderError("A base URL is required for the local/server AI.")
+
+        if provider_id == "self_hosted_new":
+            provider_id = f"self_hosted:{uuid.uuid4().hex[:10]}"
+            provider = {
+                "label": custom_name,
+                "enabled": False,
+                "custom_name": custom_name,
+                "base_url": base_url,
+                "selected_model": selected_model,
+                "available_models": [],
+                "connection_status": "Checking connection...",
+                "last_error": "",
+                "preset": preset,
+                "api_key": api_key,
+            }
+            self.config["providers"][provider_id] = provider
+        else:
+            provider = self._provider(provider_id)
+            provider["label"] = custom_name
+            provider["custom_name"] = custom_name
+            provider["base_url"] = base_url
+            provider["preset"] = preset
+            provider["api_key"] = api_key
+            if selected_model:
+                provider["selected_model"] = selected_model
+
+        try:
+            models = self.refresh_models(provider_id, persist=False)
+        except Exception as error:
+            provider["enabled"] = False
+            provider["last_error"] = str(error)
+            provider["connection_status"] = f"Connection failed: {error}"
+            self._save()
+            raise
+
+        provider["enabled"] = True
+        provider["last_error"] = ""
+        if selected_model:
+            provider["selected_model"] = selected_model
+        elif models and not provider.get("selected_model"):
+            provider["selected_model"] = models[0]
+        provider["connection_status"] = f"Connected. {len(models)} model(s) available."
+        self._save()
+        return self.get_ui_state()
+
     def _list_gemini_models(self, api_key: str) -> List[str]:
         response = requests.get(
             "https://generativelanguage.googleapis.com/v1beta/models",
-            params={"key": api_key},
+            headers={"x-goog-api-key": api_key},
             timeout=PROVIDER_REQUEST_TIMEOUT,
         )
         if response.status_code == 400:
@@ -447,7 +589,8 @@ class ProviderManager:
             name = (item.get("name") or "").replace("models/", "")
             if name:
                 models.append(name)
-        return sorted(models)
+        preferred = [model for model in models if model.startswith("gemini-")]
+        return sorted(preferred or models)
 
     def _chat_with_ollama(self, model: str, messages: List[Dict[str, str]]) -> str:
         base_url = (self._provider("ollama").get("base_url") or OLLAMA_DEFAULT_BASE_URL).rstrip("/")
@@ -647,13 +790,16 @@ class ProviderManager:
 
         response = requests.post(
             f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent",
-            params={"key": api_key},
-            headers={"Content-Type": "application/json"},
+            headers={
+                "Content-Type": "application/json",
+                "x-goog-api-key": api_key,
+            },
             json=payload,
             timeout=PROVIDER_REQUEST_TIMEOUT,
         )
-        if response.status_code == 400:
-            raise ProviderError("Gemini request failed. Check the model name and API key permissions.")
+        if response.status_code in {400, 404}:
+            detail = response.text.strip()
+            raise ProviderError(f"Gemini request failed ({response.status_code}). {detail[:600]}")
         response.raise_for_status()
         payload = response.json()
         candidates = payload.get("candidates", [])

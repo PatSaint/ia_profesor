@@ -164,7 +164,7 @@ If you prefer a browser interface with a microphone button, run:
 web.bat
 ```
 
-En Windows también podés usar `Iniciar ia_profesor.bat`, que además verifica actualizaciones, dependencias y Ollama antes de abrir la app.
+En Windows también podés usar `Iniciar ia_profesor.bat`, que además verifica actualizaciones y dependencias antes de abrir la app. Si detecta Ollama, lo prepara; si no, igual podés usar proveedores remotos como OpenAI o Gemini.
 
 Then open `http://127.0.0.1:5000` if the browser does not open automatically.
 
@@ -179,7 +179,7 @@ The web UI lets you:
 
 ### Provider notes
 
-- **Ollama:** fully supported locally and used as the default fallback.
+- **Ollama:** fully supported locally, pero ahora es opcional.
 - **OpenAI API:** supported via API key and live model listing from the OpenAI Platform API.
 - **Gemini API:** supported via API key and live model listing from the Gemini API.
 - **OpenAI Web/Login:** supported through an OpenCode-inspired PKCE browser flow against `auth.openai.com`, with local token refresh and Codex-compatible chat requests.
