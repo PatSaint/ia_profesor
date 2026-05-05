@@ -1287,6 +1287,15 @@
         event.preventDefault();
         return;
       }
+      if (event.key === 'Enter' && event.altKey) {
+        event.preventDefault();
+        const start = textInput.selectionStart ?? textInput.value.length;
+        const end = textInput.selectionEnd ?? textInput.value.length;
+        const current = textInput.value;
+        textInput.value = `${current.slice(0, start)}\n${current.slice(end)}`;
+        textInput.selectionStart = textInput.selectionEnd = start + 1;
+        return;
+      }
       if (event.key === 'Enter' && !event.altKey) {
         event.preventDefault();
         await sendText();
